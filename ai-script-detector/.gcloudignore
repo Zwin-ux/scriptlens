@@ -1,0 +1,12 @@
+.gcloudignore
+.git
+.github
+.tmp*
+dist
+docs
+node_modules
+playwright-report
+store-assets
+test-results
+tests
+tmp-debug-user*

@@ -1,0 +1,51 @@
+name: smoke-e2e
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke-e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-script-detector
+    env:
+      SCRIPTLENS_BACKEND_ORIGIN: ${{ vars.SCRIPTLENS_BACKEND_ORIGIN || 'https://scriptlens-backend-134711094498.us-west2.run.app' }}
+      SCRIPTLENS_PUBLIC_SITE_ORIGIN: ${{ vars.SCRIPTLENS_PUBLIC_SITE_ORIGIN || 'https://synergy-production-b7bd.up.railway.app' }}
+      PW_HEADLESS: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ai-script-detector/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Build staged extension
+        run: npm run build:extension
+
+      - name: Run YouTube smoke suite
+        run: npx playwright test tests/youtube.smoke.spec.js --reporter=line
+
+      - name: Run staged QA report on manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run qa:staging
+
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scriptlens-smoke-e2e-artifacts
+          path: |
+            ai-script-detector/dist/chrome-unpacked
+            ai-script-detector/release/staged-qa-report.md
+            ai-script-detector/release/staged-qa-report.json
+            ai-script-detector/test-results
+

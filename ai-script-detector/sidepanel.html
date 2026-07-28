@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScriptLens Workspace</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <main class="workspace-shell">
+      <header class="workspace-card top-card">
+        <div class="top-row">
+          <div class="brand-lockup">
+            <img src="icons/icon.svg" alt="ScriptLens" class="brand-mark">
+            <div class="brand-copy">
+              <span class="eyebrow">ScriptLens</span>
+              <strong class="brand-title">YouTube workspace</strong>
+            </div>
+          </div>
+          <span class="pill">Advanced view</span>
+        </div>
+        <div class="context-box">
+          <span class="eyebrow">Current video</span>
+          <strong id="pageTitle">Loading current tab...</strong>
+          <span id="pageSummary">ScriptLens keeps the workspace pinned to the active YouTube watch page.</span>
+          <div id="pageBadges" class="badge-row"></div>
+        </div>
+      </header>
+
+      <section id="statusBanner" class="status-banner hidden" role="status"></section>
+
+      <section class="workspace-card">
+        <div class="action-box">
+          <div class="action-copy">
+            <span class="eyebrow">Workspace action</span>
+            <strong id="recommendedActionTitle">Analyze this video</strong>
+            <span id="recommendedActionCopy">Run a transcript-first check, compare transcript sources, and keep the last few reports in one place.</span>
+          </div>
+          <div class="action-buttons">
+            <button id="recommendedActionButton" class="button button-primary">Analyze Video</button>
+            <button id="openWorkspaceButton" class="button button-secondary">Refresh Video</button>
+          </div>
+        </div>
+
+        <p class="section-note">
+          This workspace is the advanced follow-on surface. The inline button on YouTube should still be the main consumer path.
+        </p>
+
+        <div id="youtubeControls" class="control-group hidden">
+          <span class="eyebrow">Transcript controls</span>
+          <div id="videoSourceChips" class="chip-row"></div>
+          <label class="toggle-row">
+            <input id="allowFallbackTextInput" type="checkbox">
+            <span>Allow title and description fallback if the spoken transcript is unavailable</span>
+          </label>
+          <label id="trackField" class="field hidden">
+            <span>Caption track</span>
+            <select id="trackSelect"></select>
+          </label>
+        </div>
+
+        <details id="settingsPanel" class="details-panel">
+          <summary>Advanced settings</summary>
+          <div class="details-body settings-grid">
+            <label class="field">
+              <span>Sensitivity</span>
+              <select id="sensitivitySelect">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Max text length</span>
+              <input id="maxTextLengthInput" type="number" min="4000" max="50000" step="1000">
+            </label>
+            <label class="toggle-row">
+              <input id="debugModeInput" type="checkbox">
+              <span>Debug mode</span>
+            </label>
+            <label class="toggle-row">
+              <input id="allowBackendTranscriptFallbackInput" type="checkbox">
+              <span>Allow transcript recovery service</span>
+            </label>
+            <p id="backendRecoveryNote" class="muted-copy"></p>
+            <button id="saveSettingsButton" class="button button-secondary">Save Settings</button>
+          </div>
+        </details>
+      </section>
+
+      <section id="resultPanel" class="workspace-card result-card empty-state">
+        <div id="resultEmpty" class="result-empty">
+          <span class="eyebrow">Result</span>
+          <h2>Ready for analysis</h2>
+          <p>Run the current video through ScriptLens to compare transcript quality, score, and the reasons behind the result.</p>
+        </div>
+
+        <div id="resultContent" class="hidden">
+          <div class="result-overview">
+            <div id="scoreBadge" class="score-badge">
+              <span id="scoreValue">0</span>
+              <small>/100</small>
+            </div>
+            <div class="summary-stack">
+              <div class="badge-line">
+                <span id="verdictBadge" class="badge verdict-badge"></span>
+                <span id="qualityBadge" class="badge input-badge"></span>
+                <span id="providerBadge" class="badge provider-badge hidden"></span>
+              </div>
+              <p id="reportExplanation" class="report-explanation"></p>
+              <p id="acquisitionStateCopy" class="muted-copy"></p>
+              <div class="report-meta">
+                <span id="reportSource"></span>
+                <span id="reportCounts"></span>
+                <span id="reportMeta"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <article class="info-card">
+              <span class="eyebrow">Transcript source</span>
+              <strong id="sourceValue">Not applicable</strong>
+              <span id="sourceMeta" class="muted-copy"></span>
+            </article>
+            <article class="info-card">
+              <span class="eyebrow">Transcript quality</span>
+              <strong id="sourceConfidenceValue">Not applicable</strong>
+              <span id="sourceConfidenceMeta" class="muted-copy"></span>
+            </article>
+            <article class="info-card">
+              <span class="eyebrow">Result confidence</span>
+              <strong id="detectorConfidenceValue">Low</strong>
+              <span id="detectorConfidenceMeta" class="muted-copy"></span>
+            </article>
+          </div>
+          <p id="privacyDisclosure" class="muted-copy hidden"></p>
+
+          <details class="details-panel" open>
+            <summary>Interpretation</summary>
+            <div class="details-body">
+              <p id="qualitySummary" class="body-copy"></p>
+              <p id="trustMeans" class="body-copy"></p>
+              <p id="trustNotMeans" class="body-copy"></p>
+              <div class="dual-list">
+                <div>
+                  <strong>Common false positives</strong>
+                  <ul id="falsePositiveList" class="bullet-list"></ul>
+                </div>
+                <div>
+                  <strong>Trust this more when</strong>
+                  <ul id="trustMoreList" class="bullet-list"></ul>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="details-panel">
+            <summary>Signals and reasons</summary>
+            <div class="details-body details-grid">
+              <section class="subsection">
+                <div class="section-head compact">
+                  <div>
+                    <h3>Top reasons</h3>
+                    <p class="section-copy">Why the score moved.</p>
+                  </div>
+                </div>
+                <ul id="topReasonsList" class="reason-list"></ul>
+              </section>
+              <section class="subsection">
+                <div class="section-head compact">
+                  <div>
+                    <h3>Signal profile</h3>
+                    <p class="section-copy">Weighted category scores.</p>
+                  </div>
+                </div>
+                <div id="categoryGrid" class="signal-list"></div>
+              </section>
+            </div>
+          </details>
+
+          <details class="details-panel">
+            <summary>
+              Flagged passages
+              <span id="flaggedCount" class="pill">0 flagged</span>
+            </summary>
+            <div class="details-body">
+              <ul id="flaggedSentencesList" class="flag-list"></ul>
+            </div>
+          </details>
+
+          <details id="debugSection" class="details-panel hidden">
+            <summary>Debug</summary>
+            <div class="details-body debug-grid">
+              <article class="info-card">
+                <span class="eyebrow">Winning path</span>
+                <strong id="debugWinningPath">Not available</strong>
+                <span id="debugWinnerReason" class="muted-copy"></span>
+              </article>
+              <article class="info-card">
+                <span class="eyebrow">Warnings</span>
+                <strong id="debugWarnings">None</strong>
+                <span id="debugErrors" class="muted-copy"></span>
+              </article>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <details class="workspace-card">
+        <summary>Recent reports</summary>
+        <div class="details-body">
+          <ul id="recentReportsList" class="recent-list"></ul>
+        </div>
+      </details>
+    </main>
+
+    <script src="utils/debug.js"></script>
+    <script src="shared/contracts.js"></script>
+    <script src="surface/shared.js"></script>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

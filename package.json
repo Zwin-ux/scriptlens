@@ -1,0 +1,9 @@
+{
+  "name": "synergy-public-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Railway entrypoint for the ScriptLens public site.",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

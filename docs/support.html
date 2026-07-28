@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScriptLens Support</title>
+    <meta
+      name="description"
+      content="Support resources for the ScriptLens Chrome extension and its transcript-first YouTube workflow."
+    >
+    <link rel="stylesheet" href="base.css?v=20260619">
+  </head>
+  <body>
+    <div class="site-shell">
+      <nav class="site-nav">
+        <div class="brand">
+          <img src="assets/icon.svg" alt="ScriptLens" class="brand-mark">
+          <div class="brand-label">
+            <span class="eyebrow">Support and operations</span>
+            <strong>ScriptLens</strong>
+          </div>
+        </div>
+        <div class="nav-links">
+          <a href="/">Overview</a>
+          <a href="/design-system">Design system</a>
+          <a href="/privacy">Privacy</a>
+          <a href="https://github.com/Zwin-ux/scriptlens">GitHub</a>
+          <a href="https://github.com/Zwin-ux/scriptlens/issues/new?template=scriptlens-support.yml" class="nav-link-strong">Open issue</a>
+        </div>
+      </nav>
+
+      <main class="content-main">
+        <section class="content-hero">
+          <div class="content-hero-copy">
+            <span class="eyebrow">Public support route</span>
+            <h1>Use GitHub Issues for support and bug reports.</h1>
+            <p>
+              ScriptLens uses a public support path so extension behavior, transcript recovery questions, and release issues can be tracked in one place. Include the exact YouTube URL and the surface where the issue appeared.
+            </p>
+            <div class="chip-row">
+              <span class="chip">Inline widget</span>
+              <span class="chip warm">Popup</span>
+              <span class="chip alert">Side-panel workspace</span>
+            </div>
+            <div class="link-cluster">
+              <a class="button button-primary" href="https://github.com/Zwin-ux/scriptlens/issues/new?template=scriptlens-support.yml">Open a support issue</a>
+              <a class="button button-secondary" href="/privacy">Privacy policy</a>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <article class="info-card">
+              <span class="eyebrow">Before filing</span>
+              <h3>Check the environment first.</h3>
+              <p>Reload the extension, refresh the YouTube tab, and confirm you are on a desktop watch page instead of Shorts or mobile YouTube.</p>
+            </article>
+            <article class="info-card">
+              <span class="eyebrow">In the report</span>
+              <h3>Include the exact video URL.</h3>
+              <p>Support is fastest when the issue includes the YouTube link, the Chrome version, the extension version, and the visible error text.</p>
+            </article>
+            <article class="info-card">
+              <span class="eyebrow">Recovery questions</span>
+              <h3>Say whether recovery was enabled.</h3>
+              <p>Transcript-availability issues are easier to triage when you note whether the build was the local-only store release or a custom recovery-enabled build.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="content-section content-grid-two">
+          <article class="content-card">
+            <span class="eyebrow">Before filing an issue</span>
+            <h2>Run the short checklist.</h2>
+            <ul class="list-check">
+              <li>Reload the extension from <code>chrome://extensions</code> and refresh the YouTube tab</li>
+              <li>Confirm you are on a desktop <code>youtube.com/watch</code> page</li>
+              <li>Try the inline button first, then use the workspace if you need more detail</li>
+              <li>If the issue involves transcript recovery, note whether this build was local-only or had a custom recovery service configured</li>
+            </ul>
+          </article>
+
+          <article class="content-card">
+            <span class="eyebrow">What to include</span>
+            <h2>Give support the exact reproduction context.</h2>
+            <ul class="list-check">
+              <li>The full YouTube URL</li>
+              <li>Whether the issue appeared in the inline widget, popup, or side panel</li>
+              <li>The extension version and Chrome version</li>
+              <li>Any visible ScriptLens error text or transcript-quality warning</li>
+            </ul>
+          </article>
+
+          <article class="content-card">
+            <span class="eyebrow">Common question</span>
+            <h2>Why does ScriptLens say the transcript is unavailable?</h2>
+            <p>
+              Some videos expose limited transcript data or block transcript text on the page. ScriptLens keeps the inline experience transcript-first. If local transcript recovery fails and you are using a custom recovery-enabled build, the extension can try that path before it reports that the transcript is unavailable.
+            </p>
+          </article>
+
+          <article class="content-card">
+            <span class="eyebrow">Scope</span>
+            <h2>Where this release works</h2>
+            <p>
+              This Chrome Web Store release is intentionally scoped to desktop <code>youtube.com/watch</code> pages. It is not a generic website detector and it is not designed for Shorts or <code>m.youtube.com</code>.
+            </p>
+          </article>
+
+          <article class="content-card">
+            <span class="eyebrow">Optional backend</span>
+            <h2>Hosted or self-hosted recovery</h2>
+            <p>
+              The recovery backend is optional and separate from the store package. The Chrome Web Store release is designed to stay local-only, while open-source deployments can use a compatible hosted or self-hosted backend for stronger transcript recovery on harder videos. The detector release does not depend on a public community workflow or posting surface.
+            </p>
+          </article>
+
+          <article class="content-card">
+            <span class="eyebrow">Escalation</span>
+            <h2>When to open a new issue</h2>
+            <p>
+              Open a new issue when a stable watch-page flow regresses, when a transcript-rich video repeatedly fails, or when a release build behaves differently from the public privacy and support documentation.
+            </p>
+          </article>
+        </section>
+
+        <section class="callout-band">
+          <div class="callout-copy">
+            <span class="eyebrow">Need the policy too?</span>
+            <h2>Support and privacy should stay aligned.</h2>
+            <p>
+              The public policy and support pages are part of the same Railway-hosted site so Chrome Web Store reviewers and users see one consistent product story.
+            </p>
+          </div>
+          <div class="link-cluster">
+            <a class="button button-primary" href="/privacy">Read the privacy policy</a>
+            <a class="button button-secondary" href="https://github.com/Zwin-ux/scriptlens/issues/new?template=scriptlens-support.yml">GitHub Issues</a>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="footer-row">
+          <p>Public support for ScriptLens is handled through the ScriptLens repository.</p>
+          <div class="footer-links">
+            <a href="/">Overview</a>
+            <a href="/design-system">Design system</a>
+            <a href="/privacy">Privacy</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

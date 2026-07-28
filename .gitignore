@@ -1,0 +1,15 @@
+.tmp-yt-dlp/
+.gstack/
+test-results/
+keys/
+ai-script-detector/tmp-debug-user/
+ai-script-detector/tmp-debug-user-2/
+ai-script-detector/.tmp-youtube-bootstrap/
+ai-script-detector/.tmp-youtubei-fetch/
+ai-script-detector/.tmp-inline-*/
+ai-script-detector/release/*-debug.json
+ai-script-detector/release/staged-*-report.json
+ai-script-detector/release/defuddle-video-*-smoke.json
+ai-script-detector/release/defuddle-video-*-canary.json
+ai-script-detector/release/defuddle-video-*-rerun.json
+ai-script-detector/release/defuddle-video-report.json

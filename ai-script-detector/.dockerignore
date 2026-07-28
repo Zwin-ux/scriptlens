@@ -1,0 +1,12 @@
+.git
+.github
+dist
+docs
+node_modules
+store-assets
+test-results
+tests
+*.log
+.tmp*
+playwright-report
+release/*.zip

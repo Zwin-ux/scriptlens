@@ -1,0 +1,54 @@
+name: fast-checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  fast-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-script-detector
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ai-script-detector/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run deterministic fast-check suite
+        run: >
+          npx playwright test
+          tests/contracts.spec.js
+          tests/inline-state.spec.js
+          tests/service-worker-report.spec.js
+          tests/backend-module.spec.js
+          tests/release-build.spec.js
+          tests/shared-surface.spec.js
+          tests/service-worker.inline.spec.js
+          tests/backend-server.spec.js
+          tests/transcript-resolver.spec.js
+          tests/content.youtube.spec.js
+          --reporter=line
+
+      - name: Build extension
+        run: npm run build:extension
+
+      - name: Package extension
+        run: npm run package:extension
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scriptlens-fast-check-artifacts
+          path: |
+            ai-script-detector/dist/chrome-unpacked
+            ai-script-detector/dist/packages
+            ai-script-detector/release/*.md
+            ai-script-detector/release/*.json

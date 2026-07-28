@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-label="ScriptLens wordmark">
+  <rect width="720" height="180" fill="#f8fafc"/>
+  <rect x="18" y="22" width="172" height="136" rx="24" fill="#ffffff" stroke="#b6c4d8" stroke-width="6"/>
+  <line x1="44" y1="54" x2="136" y2="54" stroke="#9fb1c9" stroke-width="10" stroke-linecap="round"/>
+  <line x1="44" y1="88" x2="160" y2="88" stroke="#f25f68" stroke-width="12" stroke-linecap="round"/>
+  <line x1="44" y1="122" x2="134" y2="122" stroke="#9fb1c9" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="134" cy="86" r="44" fill="none" stroke="#2f456d" stroke-width="12"/>
+  <circle cx="145" cy="73" r="7" fill="#ffffff"/>
+  <path d="M165 116l34 34" stroke="#4a88e9" stroke-width="16" stroke-linecap="round"/>
+  <rect x="186" y="124" width="26" height="44" rx="10" transform="rotate(-45 186 124)" fill="#4a88e9"/>
+  <text x="240" y="112" fill="#334160" font-family="Segoe UI,Aptos,Arial,sans-serif" font-size="82" font-weight="700" letter-spacing="-2">ScriptLens</text>
+</svg>

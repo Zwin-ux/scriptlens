@@ -1,0 +1,68 @@
+{
+  "manifest_version": 3,
+  "name": "ScriptLens",
+  "version": "0.1.0",
+  "description": "Analyze YouTube video transcripts for AI-like writing patterns with a one-click inline button.",
+  "minimum_chrome_version": "114",
+  "permissions": [
+    "sidePanel",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "ScriptLens",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "utils/debug.js",
+        "youtube-main.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "utils/debug.js",
+        "shared/contracts.js",
+        "surface/shared.js",
+        "surface/inline-state.js",
+        "utils/text.js",
+        "utils/stats.js",
+        "utils/dom.js",
+        "vendor/defuddle.js",
+        "utils/defuddle-extractor.js",
+        "content.js",
+        "youtube-overlay.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

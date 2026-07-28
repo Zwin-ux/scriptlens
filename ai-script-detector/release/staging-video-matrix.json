@@ -1,0 +1,131 @@
+[
+  {
+    "id": "npy-writing-safety",
+    "label": "Writing safety talk",
+    "url": "https://www.youtube.com/watch?v=NPY2NIS-iao",
+    "categories": ["hard-blocker", "caption-recovery", "medium"],
+    "canary": true,
+    "expectedOk": true,
+    "expectedOriginKind": "manual_caption_track"
+  },
+  {
+    "id": "vwq-english-transitions",
+    "label": "Advanced English transitions",
+    "url": "https://www.youtube.com/watch?v=vWQk67meYUA",
+    "categories": ["hard-blocker", "caption-recovery", "medium"],
+    "canary": true,
+    "expectedOk": true,
+    "expectedOriginKind": "manual_caption_track"
+  },
+  {
+    "id": "jnqx-me-at-zoo",
+    "label": "Me at the zoo",
+    "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    "categories": ["short-video", "caption-recovery"],
+    "canary": true,
+    "expectedOk": true,
+    "expectedOriginKind": "manual_caption_track"
+  },
+  {
+    "id": "m7lc-youtube-api-demo",
+    "label": "YouTube API demo",
+    "url": "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+    "categories": ["clean-transcript", "medium", "developer"],
+    "canary": true,
+    "expectedOk": true,
+    "expectedOriginKind": "manual_caption_track"
+  },
+  {
+    "id": "airc-neural-networks",
+    "label": "Neural networks visual intro",
+    "url": "https://www.youtube.com/watch?v=aircAruvnKk",
+    "categories": ["clean-transcript", "educational", "medium"],
+    "canary": true,
+    "expectedOk": true,
+    "expectedOriginKind": "manual_caption_track"
+  },
+  {
+    "id": "ig9-30-days",
+    "label": "Try something new for 30 days",
+    "url": "https://www.youtube.com/watch?v=iG9CE55wbtY",
+    "categories": ["clean-transcript", "talk", "medium"]
+  },
+  {
+    "id": "o8ni-google-keynote",
+    "label": "Google keynote session",
+    "url": "https://www.youtube.com/watch?v=o8NiE3XMPrM",
+    "categories": ["long-video", "clean-transcript", "conference"]
+  },
+  {
+    "id": "pyyx-35-minute-lecture",
+    "label": "35 minute lecture",
+    "url": "https://www.youtube.com/watch?v=pYyxKvyMhU0",
+    "categories": ["near-asr-cap", "lecture", "clean-transcript"]
+  },
+  {
+    "id": "faw-lecture-success",
+    "label": "Long lecture success case",
+    "url": "https://www.youtube.com/watch?v=FAwTrVqrT3U",
+    "categories": ["long-video", "clean-transcript", "lecture"]
+  },
+  {
+    "id": "xm9-spanish-talk",
+    "label": "Spanish talk candidate",
+    "url": "https://www.youtube.com/watch?v=XM9CPSHVOT8",
+    "categories": ["non-english", "translated-captions-candidate", "caption-recovery"]
+  },
+  {
+    "id": "lxgy-spanish-talk",
+    "label": "Spanish talk candidate two",
+    "url": "https://www.youtube.com/watch?v=lXGY0X-wdjI",
+    "categories": ["non-english", "translated-captions-candidate", "caption-recovery"]
+  },
+  {
+    "id": "aqz-big-buck-bunny",
+    "label": "Big Buck Bunny trailer",
+    "url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+    "categories": ["transcript-miss", "asr-fallback-candidate"]
+  },
+  {
+    "id": "gangnam-style",
+    "label": "Gangnam Style",
+    "url": "https://www.youtube.com/watch?v=9bZkp7q19f0",
+    "categories": ["non-english", "translated-captions-candidate", "asr-fallback-candidate"]
+  },
+  {
+    "id": "despacito",
+    "label": "Despacito",
+    "url": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+    "categories": ["non-english", "translated-captions-candidate", "asr-fallback-candidate"]
+  },
+  {
+    "id": "eeaa-documentary-cap",
+    "label": "Documentary over auto ASR cap",
+    "url": "https://www.youtube.com/watch?v=eeaAwLOTMAU",
+    "categories": ["long-video", "asr-duration-policy", "documentary"],
+    "canary": true,
+    "expectedOk": false,
+    "expectedErrorCode": "asr_duration_limit"
+  },
+  {
+    "id": "8xrz-podcast-absolute-cap",
+    "label": "Very long podcast over absolute cap",
+    "url": "https://www.youtube.com/watch?v=8xRz8ra9mdI",
+    "categories": ["long-video", "asr-duration-policy", "podcast"],
+    "canary": true,
+    "expectedOk": false,
+    "expectedErrorCode": "asr_duration_absolute_limit"
+  },
+  {
+    "id": "rick-astley",
+    "label": "Rick Astley quality reject",
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "categories": ["generated-captions-candidate", "quality-gate", "music"]
+  },
+  {
+    "id": "japan-vlog-noise",
+    "label": "Japan vlog degraded captions",
+    "url": "https://www.youtube.com/watch?v=N8XaLy1gWV0",
+    "categories": ["generated-captions-candidate", "quality-gate", "non-english"]
+  }
+]

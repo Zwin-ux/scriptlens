@@ -1,0 +1,37 @@
+name: scheduled-canary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 17 * * *"
+
+jobs:
+  scheduled-canary:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-script-detector
+    env:
+      SCRIPTLENS_BACKEND_ORIGIN: ${{ vars.SCRIPTLENS_BACKEND_ORIGIN || 'https://scriptlens-backend-134711094498.us-west2.run.app' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ai-script-detector/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run daily backend canary
+        run: npm run qa:canary
+
+      - name: Upload canary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scriptlens-scheduled-canary-artifacts
+          path: |
+            ai-script-detector/release/staged-canary-report.md
+            ai-script-detector/release/staged-canary-report.json

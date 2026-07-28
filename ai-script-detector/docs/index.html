@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScriptLens | YouTube transcript inspection for Chrome</title>
+    <meta
+      name="description"
+      content="ScriptLens is an open-source Chrome extension for desktop YouTube watch pages. It inspects transcript text for AI-like writing patterns with an inline result, popup, and side-panel workspace."
+    >
+    <link rel="stylesheet" href="base.css?v=20260619">
+    <link rel="stylesheet" href="landing.css?v=20260619">
+  </head>
+  <body class="landing-page">
+    <div class="site-shell">
+      <nav class="site-nav">
+        <div class="brand">
+          <img src="assets/icon.svg" alt="ScriptLens" class="brand-mark">
+          <div class="brand-label">
+            <span class="eyebrow">Transcript inspection for YouTube</span>
+            <strong>ScriptLens</strong>
+          </div>
+        </div>
+        <div class="nav-links">
+          <a href="#product">Product</a>
+          <a href="#proof">Proof</a>
+          <a href="/design-system">Design system</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/support">Support</a>
+          <a href="https://github.com/Zwin-ux/scriptlens" class="nav-link-strong">GitHub</a>
+        </div>
+      </nav>
+
+      <main class="case-main">
+        <section class="case-hero" id="product">
+          <div class="case-copy">
+            <span class="eyebrow">Open-source Chrome extension</span>
+            <h1>ScriptLens</h1>
+            <p class="lede">
+              A focused YouTube tool that inspects transcript text for AI-like writing patterns without pulling users into a dashboard. The main result lives on the watch page; the popup and side panel are there when the user needs the evidence trail.
+            </p>
+            <div class="case-actions">
+              <a class="button button-primary" href="#surfaces">View product surfaces</a>
+              <a class="button button-secondary" href="#proof">Read shipping notes</a>
+            </div>
+          </div>
+
+          <aside class="case-ledger" aria-label="Project facts">
+            <dl>
+              <div>
+                <dt>Primary surface</dt>
+                <dd>Desktop <code>youtube.com/watch</code></dd>
+              </div>
+              <div>
+                <dt>Release target</dt>
+                <dd>Chrome Web Store, local-only detector build</dd>
+              </div>
+              <div>
+                <dt>Public site</dt>
+                <dd>Railway static docs with privacy, support, and health route</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>Detector path is showable; hosted recovery canary remains a documented backend risk</dd>
+              </div>
+            </dl>
+          </aside>
+        </section>
+
+        <section class="surface-stage" id="surfaces" aria-label="ScriptLens product surfaces">
+          <figure class="surface-shot surface-shot-primary">
+            <div class="shot-frame shot-frame-wide">
+              <img src="assets/inline-result.png" alt="ScriptLens inline result card on a desktop YouTube watch page.">
+            </div>
+            <figcaption>
+              <strong>Inline result on the watch page</strong>
+              <span>The fastest path stays inside YouTube: transcript quality, score, explanation, and a clean jump into the workspace.</span>
+            </figcaption>
+          </figure>
+
+          <div class="surface-column">
+            <figure class="surface-shot">
+              <div class="shot-frame shot-frame-tall">
+                <img src="assets/popup-surface.png" alt="ScriptLens toolbar popup with quick transcript review controls.">
+              </div>
+              <figcaption>
+                <strong>Toolbar popup</strong>
+                <span>Compact controls for reruns, transcript choice, and recent checks.</span>
+              </figcaption>
+            </figure>
+
+            <figure class="surface-shot">
+              <div class="shot-frame shot-frame-tall">
+                <img src="assets/workspace-surface.png" alt="ScriptLens side-panel workspace with detailed analysis.">
+              </div>
+              <figcaption>
+                <strong>Side-panel workspace</strong>
+                <span>Reasons, transcript provenance, fallback state, and deeper report review.</span>
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="signal-strip" aria-label="Product principles">
+          <div>
+            <span class="eyebrow">01</span>
+            <strong>Transcript first</strong>
+            <p>Title and description fallback is not treated as a win unless the user explicitly allows it.</p>
+          </div>
+          <div>
+            <span class="eyebrow">02</span>
+            <strong>Local by default</strong>
+            <p>The store-facing detector can score on-device without a hosted recovery dependency.</p>
+          </div>
+          <div>
+            <span class="eyebrow">03</span>
+            <strong>Evidence visible</strong>
+            <p>Transcript quality and provenance stay visible so the score does not feel like a black box.</p>
+          </div>
+        </section>
+
+        <section class="proof-layout" id="proof">
+          <div class="proof-copy">
+            <span class="eyebrow">Shipping record</span>
+            <h2>What is real in this repo.</h2>
+            <p>
+              ScriptLens is not a mock landing page. The repo includes the extension runtime, public docs, packaging scripts, release readiness reports, store listing copy, issue templates, and Playwright coverage around the detector, backend resolver, release build, and staged QA flow.
+            </p>
+          </div>
+
+          <div class="proof-board">
+            <article>
+              <span class="eyebrow">Shippable scope</span>
+              <h3>Chrome extension surfaces</h3>
+              <ul>
+                <li>Inline watch-page button and verdict card</li>
+                <li>Toolbar popup for quick review and state</li>
+                <li>Side-panel workspace for detailed analysis</li>
+                <li>Local-only public package path</li>
+              </ul>
+            </article>
+
+            <article>
+              <span class="eyebrow">Operational docs</span>
+              <h3>Public review pages</h3>
+              <ul>
+                <li><a href="/privacy">Privacy policy</a> matched to the shipped behavior</li>
+                <li><a href="/support">Support route</a> with GitHub issue handoff</li>
+                <li><a href="/design-system">Design system</a> for the product language</li>
+                <li><a href="/healthz">Health check</a> for Railway deployment checks</li>
+              </ul>
+            </article>
+
+            <article>
+              <span class="eyebrow">Known risk</span>
+              <h3>Backend recovery canary</h3>
+              <p>
+                The latest staged canary artifact records a clustered hosted-recovery failure under auth-session. The public release target stays local-only, so this is documented as a backend recovery risk instead of hidden behind green marketing copy.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="scope-table" aria-label="ScriptLens shipping scope">
+          <div class="scope-row">
+            <span>Supported page</span>
+            <strong>Desktop YouTube watch pages</strong>
+            <p><code>https://www.youtube.com/watch</code> is the intended product lane.</p>
+          </div>
+          <div class="scope-row">
+            <span>Out of scope</span>
+            <strong>Shorts, mobile YouTube, and generic website detection</strong>
+            <p>The release is intentionally narrow so the transcript path can be tested hard.</p>
+          </div>
+          <div class="scope-row">
+            <span>Permissions</span>
+            <strong><code>storage</code>, <code>sidePanel</code>, and YouTube host access</strong>
+            <p>Recovery-enabled builds add a fixed backend host permission when packaged for that mode.</p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div class="footer-row">
+          <p>Public site for the ScriptLens Chrome extension, served from Railway.</p>
+          <div class="footer-links">
+            <a href="/design-system">Design system</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/support">Support</a>
+            <a href="https://github.com/Zwin-ux/scriptlens/issues/new?template=scriptlens-support.yml">Report an issue</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

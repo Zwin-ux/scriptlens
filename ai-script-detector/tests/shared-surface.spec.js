@@ -35,7 +35,7 @@ test.describe("ScriptLens shared surface helpers", () => {
 
     expect(viewModel.sourceLabel).toBe("Recovered transcript");
     expect(viewModel.qualityLabel).toBe("Usable transcript");
-    expect(viewModel.privacyDisclosure).toContain("video ID and requested language");
+    expect(viewModel.privacyDisclosure).toBe("");
     expect(viewModel.confidenceLabel).toBe("Medium");
     expect(viewModel.contractVersion).toBe("2026-03-11");
   });

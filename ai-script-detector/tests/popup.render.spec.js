@@ -98,7 +98,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
     );
   });
 
-  test("renders backend partial transcript labeling and privacy disclosure", async ({
+  test("renders partial transcript labeling without a data-sharing disclosure", async ({
     context,
     extensionId
   }) => {
@@ -243,9 +243,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
       "Partial transcript"
     );
     await expect(popupPage.locator("#providerBadge")).toContainText("Recovered transcript");
-    await expect(popupPage.locator("#privacyDisclosure")).toContainText(
-      "video ID and requested language"
-    );
+    await expect(popupPage.locator("#privacyDisclosure")).toBeHidden();
     await expect(popupPage.locator("#acquisitionStateCopy")).toContainText(
       "real transcript source"
     );

@@ -153,10 +153,7 @@
       sourceConfidence: capitalize(acquisition.sourceConfidence || "not applicable"),
       sourceConfidenceMeta: confidenceMeta.join(" - "),
       providerLabel,
-      privacyDisclosure:
-        acquisition.providerClass === "backend"
-          ? "Only the video ID and requested language were sent to ScriptLens to retrieve the transcript."
-          : "",
+      privacyDisclosure: "",
       acquisitionStateNote,
       detectorConfidence: notScored
         ? "Not scored"
@@ -270,7 +267,7 @@
       detailSummary,
       transcriptMeta,
       reasonPreview: (report.topReasons || detection.reasons || []).slice(0, 3),
-      privacyDisclosure: getConsumerPrivacyDisclosure(acquisition),
+      privacyDisclosure: "",
       canShowDetails: Boolean(acquisition.kind === "transcript"),
       advancedSourceLabel: acquisition.sourceLabel || "Transcript",
       advancedSourceMeta: [
@@ -477,14 +474,6 @@
       return "Transcript unavailable";
     }
     return "Transcript check";
-  }
-
-  function getConsumerPrivacyDisclosure(acquisition) {
-    if (acquisition.providerClass !== "backend") {
-      return "";
-    }
-
-    return "To recover the transcript, ScriptLens only shared the video ID and requested language with the recovery service.";
   }
 
   function buildQualityGateNote(acquisition) {

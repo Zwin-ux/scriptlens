@@ -10,6 +10,7 @@ const test = base.extend({
     const userDataDir = path.join(testInfo.outputDir, "user-data");
     const context = await chromium.launchPersistentContext(userDataDir, {
       channel: "chromium",
+      executablePath: process.env.PW_CHROMIUM_EXECUTABLE || undefined,
       headless: process.env.PW_HEADLESS === "1",
       viewport: {
         width: 1600,

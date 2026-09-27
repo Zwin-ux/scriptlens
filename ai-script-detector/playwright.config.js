@@ -10,6 +10,9 @@ module.exports = defineConfig({
   workers: 1,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
+    launchOptions: {
+      executablePath: process.env.PW_CHROMIUM_EXECUTABLE || undefined
+    },
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure"

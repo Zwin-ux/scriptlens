@@ -6,7 +6,7 @@
   "scripts": {
     "build:extension": "node scripts/build-extension.mjs",
     "build:defuddle-canary": "node scripts/defuddle-canary.mjs build",
-    "ci:fast": "playwright test tests/contracts.spec.js tests/inline-state.spec.js tests/service-worker-report.spec.js tests/release-build.spec.js tests/shared-surface.spec.js tests/service-worker.inline.spec.js tests/transcript-resolver.spec.js tests/content.youtube.spec.js tests/detector-packaging.spec.js --reporter=line",
+    "ci:fast": "playwright test tests/contracts.spec.js tests/inline-state.spec.js tests/service-worker-report.spec.js tests/release-build.spec.js tests/shared-surface.spec.js tests/service-worker.inline.spec.js tests/transcript-resolver.spec.js tests/content.youtube.spec.js tests/detector-packaging.spec.js tests/detector-calibration.spec.js --reporter=line",
     "ci:smoke": "playwright test tests/youtube.smoke.spec.js --reporter=line",
     "debug:youtube-transcript": "node scripts/debug-youtube-transcript.mjs",
     "package:extension": "node scripts/package-extension.mjs",

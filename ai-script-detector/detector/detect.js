@@ -12,7 +12,12 @@
     }
 
     const report = result.report;
-    const baseConfidence = deriveBaseConfidence(report.metadata || {});
+    // Without punctuation the sentence-shape signals are switched off, so the
+    // read rests on vocabulary alone; don't claim more than medium confidence.
+    const baseConfidence = capConfidence(
+      deriveBaseConfidence(report.metadata || {}),
+      report.metadata?.punctuated === false ? "medium" : null
+    );
     const detectorConfidence = capConfidence(
       baseConfidence,
       options?.sourceConfidence || null

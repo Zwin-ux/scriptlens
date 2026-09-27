@@ -2,15 +2,30 @@
   const App = (root.AIScriptDetector = root.AIScriptDetector || {});
   const Stats = App.stats;
 
-  const WEIGHTS = {
-    repetition: 0.16,
-    uniformity: 0.14,
-    genericity: 0.18,
-    script_template: 0.14,
-    title_packaging: 0.24,
-    specificity_deficit: 0.08,
-    burstiness: 0.06
+  // Lexical categories are direct evidence and combine like independent signals:
+  // one strong category can carry the score without being averaged away by the
+  // categories that found nothing. Each weight is how far that category alone can
+  // push the lexical evidence toward certainty.
+  const LEXICAL_WEIGHTS = {
+    assistant_phrasing: 0.95,
+    title_packaging: 0.85,
+    genericity: 0.5,
+    script_template: 0.3,
+    repetition: 0.3
   };
+
+  // Stylometric categories are weak, noisy evidence (especially for speech), so
+  // they only contribute a bounded share of the final score.
+  const STYLE_WEIGHTS = {
+    specificity_deficit: 0.4,
+    uniformity: 0.35,
+    burstiness: 0.25
+  };
+  const STYLE_SHARE_PUNCTUATED = 0.25;
+  const STYLE_SHARE_UNPUNCTUATED = 0.1;
+
+  // How strongly unscripted-speech markers pull the score down (0..1 of the score).
+  const SPONTANEITY_DAMPING = 0.55;
 
   const SENSITIVITY = {
     low: {
@@ -41,7 +56,9 @@
     const reasons = [];
     const triggeredPatterns = [];
 
-    let weightedScore = 0;
+    let lexicalMiss = 1;
+    let styleTotal = 0;
+    let styleWeightTotal = 0;
 
     categoryResults.forEach((result) => {
       const adjustedScore = Stats.clamp(
@@ -50,7 +67,13 @@
         100
       );
       categoryScores[result.category] = Stats.round(adjustedScore);
-      weightedScore += adjustedScore * (WEIGHTS[result.category] || 0);
+      if (LEXICAL_WEIGHTS[result.category]) {
+        lexicalMiss *= 1 - LEXICAL_WEIGHTS[result.category] * (adjustedScore / 100);
+      }
+      if (STYLE_WEIGHTS[result.category]) {
+        styleTotal += adjustedScore * STYLE_WEIGHTS[result.category];
+        styleWeightTotal += STYLE_WEIGHTS[result.category];
+      }
 
       if (adjustedScore >= 28) {
         result.reasons.forEach((reason) => {
@@ -70,29 +93,27 @@
       });
     });
 
-    const strongCategories = Object.values(categoryScores).filter((score) => score >= 60).length;
-    const moderateCategories = Object.values(categoryScores).filter((score) => score >= 40).length;
-    const crossSignalBoost =
-      Math.max(0, strongCategories - 1) * 4 + Math.max(0, moderateCategories - 2) * 2;
-    const dominantCategory = Math.max(...Object.values(categoryScores), 0);
-    const strongTriggerCount = triggeredPatterns.filter((pattern) => (pattern.weight || 0) >= 14).length;
-    const concentratedPatternBoost =
-      context.wordCount <= 160
-        ? Math.min(
-            18,
-            Math.max(0, dominantCategory - 65) * 0.18 + Math.max(0, strongTriggerCount - 1) * 2.5
-          )
-        : Math.min(8, Math.max(0, strongTriggerCount - 3) * 1.5);
+    const lexicalEvidence = 1 - lexicalMiss;
+    const styleEvidence = styleWeightTotal ? styleTotal / styleWeightTotal / 100 : 0;
+    const styleShare =
+      context.punctuated === false ? STYLE_SHARE_UNPUNCTUATED : STYLE_SHARE_PUNCTUATED;
+    const spontaneity = Stats.clamp(Number(options.spontaneity?.score) || 0, 0, 1);
+    const rawScore =
+      100 * ((1 - styleShare) * lexicalEvidence + styleShare * styleEvidence) *
+      (1 - SPONTANEITY_DAMPING * spontaneity);
 
     const finalScore = Stats.round(
-      Stats.clamp(
-        weightedScore * sensitivityProfile.multiplier +
-          crossSignalBoost +
-          concentratedPatternBoost,
-        0,
-        100
-      )
+      Stats.clamp(rawScore * sensitivityProfile.multiplier, 0, 100)
     );
+
+    if (spontaneity >= 0.35) {
+      reasons.push({
+        category: "spontaneity",
+        score: spontaneity * 100,
+        reason:
+          "Unscripted speech markers such as fillers, hedges, and self-corrections point toward a human speaker."
+      });
+    }
 
     const orderedReasons = reasons
       .sort((left, right) => right.score - left.score)
@@ -120,6 +141,9 @@
         wordCount: context.wordCount,
         sentenceCount: context.sentenceCount,
         paragraphCount: context.paragraphCount,
+        segmentation: context.segmentation || "prose",
+        punctuated: context.punctuated !== false,
+        spontaneity: Stats.round(spontaneity * 100),
         sensitivity: options.sensitivity,
         truncated: Boolean(options.truncated),
         preview: App.text.preview(context.text, 140)

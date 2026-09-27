@@ -26,6 +26,9 @@
 
   App.heuristics = {
     buildContext,
+    prepareText,
+    measureSpontaneity,
+    analyzeAssistantPhrasing,
     analyzeRepetition,
     analyzeUniformity,
     analyzeGenericity,
@@ -35,8 +38,47 @@
     analyzeBurstiness
   };
 
+  // Caption tracks arrive as short timed lines. When they carry punctuation, join
+  // them back into prose so sentence-level signals see real sentences instead of
+  // caption fragments. When they don't (typical auto-captions), keep the lines as
+  // pseudo-sentences and mark the context unpunctuated so sentence-shape signals
+  // can stand down.
+  function prepareText(text) {
+    const normalized = Text.sanitizeInput(text)
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"');
+    const lines = normalized.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    const wordCount = Text.countWords(normalized);
+    const terminalCount = (normalized.match(/[.!?]+(?=["')\]]?(?:\s|$))/g) || []).length;
+    const punctuated = wordCount > 0 && terminalCount / wordCount >= 1 / 40;
+    const linesEndingTerminal = lines.filter((line) => /[.!?]["')\]]?$/.test(line)).length;
+    const lineWordCounts = lines.map((line) => Text.countWords(line)).sort((a, b) => a - b);
+    const medianLineWords = lineWordCounts.length
+      ? lineWordCounts[Math.floor(lineWordCounts.length / 2)]
+      : 0;
+    const captionLike =
+      lines.length >= 6 && medianLineWords <= 16 && linesEndingTerminal / lines.length < 0.5;
+
+    if (!captionLike) {
+      return { text: normalized, segmentation: "prose", punctuated };
+    }
+
+    if (!punctuated) {
+      return { text: normalized, segmentation: "caption-lines", punctuated: false };
+    }
+
+    return {
+      text: Text.splitParagraphs(normalized)
+        .map((paragraph) => paragraph.split(/\n+/).map((line) => line.trim()).join(" "))
+        .join("\n\n"),
+      segmentation: "caption-reflowed",
+      punctuated: true
+    };
+  }
+
   function buildContext(text) {
-    const normalizedText = Text.sanitizeInput(text);
+    const prepared = prepareText(text);
+    const normalizedText = prepared.text;
     const sentences = Text.splitSentences(normalizedText);
     const paragraphs = Text.splitParagraphs(normalizedText);
     const lines = normalizedText
@@ -66,6 +108,9 @@
     return {
       text: normalizedText,
       lowerText,
+      flatLowerText: lowerText.replace(/\s+/g, " "),
+      segmentation: prepared.segmentation,
+      punctuated: prepared.punctuated,
       tokens,
       lines,
       paragraphs,
@@ -81,9 +126,9 @@
   }
 
   function analyzeRepetition(context) {
-    const repeatedOpeners = countMeaningfulOpeners(context.sentenceRecords).filter(
-      (entry) => entry.count >= 2
-    );
+    const repeatedOpeners = context.punctuated
+      ? countMeaningfulOpeners(context.sentenceRecords).filter((entry) => entry.count >= 2)
+      : [];
     const openerSentenceHits = repeatedOpeners.reduce((sum, entry) => sum + entry.count, 0);
     const repeatedNgrams = findRepeatedNgrams(context.tokens, Patterns.stopwords, 3)
       .filter((entry) => entry.count >= 3)
@@ -168,6 +213,10 @@
   }
 
   function analyzeUniformity(context) {
+    if (!context.punctuated) {
+      return createCategoryResult("uniformity", 0, [], [], []);
+    }
+
     const sentenceCv = Stats.coefficientOfVariation(context.sentenceLengths);
     const paragraphCv = Stats.coefficientOfVariation(context.paragraphLengths);
     const adjacencyDiff =
@@ -238,8 +287,8 @@
   }
 
   function analyzeGenericity(context) {
-    const genericPhraseHits = findPhraseHits(context.lowerText, Patterns.genericPhrases);
-    const hedgePhraseHits = findPhraseHits(context.lowerText, Patterns.hedgeTerms);
+    const genericPhraseHits = findPhraseHits(context.flatLowerText, Patterns.genericPhrases);
+    const hedgePhraseHits = findPhraseHits(context.flatLowerText, Patterns.hedgeTerms);
     const vagueWordCount = countSetHits(context.tokens, Patterns.vagueTerms);
     const buzzwordCount = countTermHits(context.lowerText, Patterns.businessBuzzwords);
     const genericDensity =
@@ -323,8 +372,8 @@
   }
 
   function analyzeScriptTemplates(context) {
-    const introSentences = context.sentenceRecords.slice(0, 3);
-    const outroSentences = context.sentenceRecords.slice(-4);
+    const introSentences = takeWordWindow(context.sentenceRecords, 60, false);
+    const outroSentences = takeWordWindow(context.sentenceRecords, 90, true);
     const introHits = collectSentencePhraseHits(introSentences, Patterns.scriptIntroPhrases);
     const ctaHits = collectSentencePhraseHits(outroSentences, Patterns.callToActionPhrases);
     const recapHits = collectSentencePhraseHits(outroSentences, Patterns.recapPhrases);
@@ -389,12 +438,14 @@
     }
 
     const hasIntroAndOutro = introHits.length && (ctaHits.length || recapHits.length);
+    // Intros and calls to action are ordinary creator habits, so they only add
+    // light supporting evidence on their own.
     const rawScore = Stats.clamp(
-      introHits.length * 20 +
-        ctaHits.length * 22 +
-        recapHits.length * 10 +
+      introHits.length * 14 +
+        ctaHits.length * 10 +
+        recapHits.length * 12 +
         hookHits.length * 6 +
-        (hasIntroAndOutro ? 12 : 0),
+        (hasIntroAndOutro ? 8 : 0),
       0,
       100
     );
@@ -574,9 +625,8 @@
     });
 
     const rawScore = Stats.clamp(
-      lowConcreteScore * 44 +
-        lowSpecificSentenceScore * 28 +
-        abstractDominance * 28,
+      (lowConcreteScore * 44 + lowSpecificSentenceScore * 28 + abstractDominance * 28) *
+        (context.punctuated ? 1 : 0.4),
       0,
       100
     );
@@ -585,6 +635,10 @@
   }
 
   function analyzeBurstiness(context) {
+    if (!context.punctuated) {
+      return createCategoryResult("burstiness", 0, [], [], []);
+    }
+
     const localBurstiness = calculateRollingBurstiness(context.sentenceLengths);
     const shapeMonotony = calculateShapeMonotony(context.sentenceLengths);
     const punctuationVariety = calculatePunctuationVariety(context.sentenceRecords);
@@ -633,6 +687,119 @@
     );
 
     return createCategoryResult("burstiness", rawScore, reasons, triggers, flags);
+  }
+
+  function analyzeAssistantPhrasing(context) {
+    const text = context.flatLowerText;
+    const phraseHits = findPhraseHits(text, Patterns.assistantPhrases);
+    const distinctPhrases = phraseHits.length;
+    const totalPhrases = phraseHits.reduce((sum, entry) => sum + entry.count, 0);
+    const wordHits = countTermHits(text, Patterns.assistantWords);
+    const regexHits = findRegexHits(text, Patterns.assistantRegexes);
+    const wordDensity = context.wordCount ? (wordHits * 100) / context.wordCount : 0;
+
+    const reasons = [];
+    const triggers = [];
+    const flags = [];
+
+    if (distinctPhrases) {
+      const examples = phraseHits
+        .slice(0, 3)
+        .map((entry) => `"${entry.value.trim().replace(/,$/, "")}"`)
+        .join(", ");
+      reasons.push(`Uses phrasing typical of AI-assistant writing, including ${examples}.`);
+      phraseHits.forEach((entry) => {
+        triggers.push({
+          category: "assistant_phrasing",
+          label: "Assistant-style phrase",
+          evidence: `"${entry.value.trim()}" appears ${entry.count} times.`,
+          count: entry.count,
+          weight: 14 + entry.count * 2,
+          examples: [entry.value.trim()]
+        });
+      });
+    }
+
+    if (wordDensity >= 1.2) {
+      reasons.push("Leans on polished connective and descriptive words that AI assistants overuse.");
+      triggers.push({
+        category: "assistant_phrasing",
+        label: "Assistant vocabulary",
+        evidence: `${wordHits} assistant-typical words appear across ${context.wordCount} words.`,
+        count: wordHits,
+        weight: 14,
+        examples: []
+      });
+    }
+
+    if (regexHits.length) {
+      reasons.push("Follows formulaic constructions such as \"it's not just X, it's Y\" or numbered tips.");
+    }
+
+    context.sentenceRecords.forEach((record) => {
+      const hit = Patterns.assistantPhrases.find((phrase) => record.lowerSentence.includes(phrase));
+      if (hit) {
+        flags.push({
+          sentenceIndex: record.index,
+          reason: `Uses assistant-style phrasing: "${hit.trim().replace(/,$/, "")}".`,
+          weight: 14
+        });
+      }
+    });
+
+    const rawScore = Stats.clamp(
+      distinctPhrases * 9 +
+        Math.min(6, totalPhrases - distinctPhrases) * 3 +
+        Stats.normalizeRange(wordDensity, 0.6, 3.5) * 35 +
+        regexHits.length * 10,
+      0,
+      100
+    );
+
+    return createCategoryResult("assistant_phrasing", rawScore, reasons, triggers, flags);
+  }
+
+  // Share of the text made of unscripted-speech markers (fillers, hedges, self-
+  // corrections) and first-person narration. Returns 0 (none) to 1 (strong).
+  function measureSpontaneity(context) {
+    const text = context.flatLowerText;
+    const markerHits = Patterns.spontaneityMarkers.reduce((sum, marker) => {
+      const escaped = marker.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const suffix = /\w$/.test(marker.trim()) ? "\\b" : "";
+      const matches = text.match(new RegExp(`\\b${escaped}${suffix}`, "g"));
+      return sum + (matches ? matches.length : 0);
+    }, 0);
+    const firstPersonHits = countSetHits(context.tokens, ["i", "i'm", "i've", "i'd", "i'll", "me", "my"]);
+    const words = Math.max(1, context.wordCount);
+    const markerDensity = (markerHits * 100) / words;
+    const firstPersonDensity = (firstPersonHits * 100) / words;
+    const score = Stats.clamp(
+      Stats.normalizeRange(markerDensity, 0.4, 2.5) * 0.8 +
+        Stats.normalizeRange(firstPersonDensity, 1.5, 5) * 0.2,
+      0,
+      1
+    );
+
+    return {
+      score,
+      markerHits,
+      markerDensity,
+      firstPersonDensity
+    };
+  }
+
+  function takeWordWindow(records, maxWords, fromEnd) {
+    const ordered = fromEnd ? records.slice().reverse() : records;
+    const picked = [];
+    let total = 0;
+    for (const record of ordered) {
+      if (picked.length && total + record.wordCount > maxWords) {
+        break;
+      }
+      picked.push(record);
+      total += record.wordCount;
+    }
+    return fromEnd ? picked.reverse() : picked;
   }
 
   function createCategoryResult(category, score, reasons, triggers, flags) {

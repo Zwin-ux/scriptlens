@@ -45,6 +45,7 @@
     }
 
     const categoryResults = [
+      App.heuristics.analyzeAssistantPhrasing(context),
       App.heuristics.analyzeRepetition(context),
       App.heuristics.analyzeUniformity(context),
       App.heuristics.analyzeGenericity(context),
@@ -56,7 +57,8 @@
 
     const report = App.scoring.compileReport(context, categoryResults, {
       sensitivity: safeOptions.sensitivity,
-      truncated: truncated.truncated
+      truncated: truncated.truncated,
+      spontaneity: App.heuristics.measureSpontaneity(context)
     });
 
     report.source = safeOptions.source;

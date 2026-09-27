@@ -307,7 +307,7 @@
           <h2 class="sl-title">We couldn't finish the transcript check</h2>
           <p class="sl-copy">${escapeHtml(message)}</p>
           <p class="sl-summary">
-            Try again on this video, or open the full workspace if you want a deeper recovery path.
+            Try again on this video, or open the full workspace to pick a caption track or analyze the title and description instead.
           </p>
           <div class="sl-actions">
             <button class="sl-primary" type="button" data-action="run-analysis"${disabled ? " disabled" : ""}>
@@ -363,7 +363,7 @@
               <span>ScriptLens caps confidence by transcript quality and sample size.</span>
             </article>
             <article class="sl-detail-card">
-              <span class="sl-label">Recovery path</span>
+              <span class="sl-label">Source path</span>
               <strong>${escapeHtml(viewModel.advancedSourceMeta || "On-page retrieval")}</strong>
               <span>${escapeHtml(viewModel.winnerReason || viewModel.qualityGateNote || "Single candidate")}</span>
             </article>

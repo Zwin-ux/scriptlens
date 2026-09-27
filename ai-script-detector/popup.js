@@ -2,9 +2,7 @@
   const DEFAULT_SETTINGS = {
     sensitivity: "medium",
     maxTextLength: 18000,
-    debugMode: false,
-    allowBackendTranscriptFallback: false,
-    backendTranscriptEndpoint: ""
+    debugMode: false
   };
   const DEFAULT_SELECTION = {
     includeSources: ["transcript"],
@@ -76,10 +74,6 @@
     elements.sensitivitySelect = document.getElementById("sensitivitySelect");
     elements.maxTextLengthInput = document.getElementById("maxTextLengthInput");
     elements.debugModeInput = document.getElementById("debugModeInput");
-    elements.allowBackendTranscriptFallbackInput = document.getElementById(
-      "allowBackendTranscriptFallbackInput"
-    );
-    elements.backendRecoveryNote = document.getElementById("backendRecoveryNote");
     elements.saveSettingsButton = document.getElementById("saveSettingsButton");
     elements.resultPanel = document.getElementById("resultPanel");
     elements.resultEmpty = document.getElementById("resultEmpty");
@@ -468,8 +462,7 @@
       settings: {
         sensitivity: elements.sensitivitySelect.value,
         maxTextLength: Number(elements.maxTextLengthInput.value),
-        debugMode: elements.debugModeInput.checked,
-        allowBackendTranscriptFallback: elements.allowBackendTranscriptFallbackInput.checked
+        debugMode: elements.debugModeInput.checked
       }
     });
 
@@ -484,16 +477,9 @@
   }
 
   function applySettings() {
-    const backendRecoveryConfigured = Boolean(state.settings.backendTranscriptEndpoint);
     elements.sensitivitySelect.value = state.settings.sensitivity;
     elements.maxTextLengthInput.value = state.settings.maxTextLength;
     elements.debugModeInput.checked = Boolean(state.settings.debugMode);
-    elements.allowBackendTranscriptFallbackInput.checked =
-      backendRecoveryConfigured && Boolean(state.settings.allowBackendTranscriptFallback);
-    elements.allowBackendTranscriptFallbackInput.disabled = !backendRecoveryConfigured;
-    elements.backendRecoveryNote.textContent = backendRecoveryConfigured
-      ? "This build can call a transcript recovery service when local YouTube transcript paths fail."
-      : "No transcript recovery service is configured in this build. Local transcript paths only.";
   }
 
   function getRecommendedRequest() {
@@ -603,8 +589,7 @@
       elements.saveSettingsButton,
       elements.sensitivitySelect,
       elements.maxTextLengthInput,
-      elements.debugModeInput,
-      elements.allowBackendTranscriptFallbackInput
+      elements.debugModeInput
     ].forEach((element) => {
       element.disabled = isBusy;
     });

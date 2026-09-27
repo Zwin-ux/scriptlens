@@ -34,6 +34,7 @@ test.describe("ScriptLens release packaging", () => {
       expect(entries).toContain("utils/defuddle-extractor.js");
       expect(entries.some((entry) => entry.startsWith("tests/"))).toBeFalsy();
       expect(entries.some((entry) => entry.startsWith("backend/"))).toBeFalsy();
+      expect(entries).not.toContain("transcript/providers/backendResolver.js");
       expect(entries.some((entry) => entry.startsWith("node_modules/"))).toBeFalsy();
       expect(entries).not.toContain("playwright.config.js");
 
@@ -41,8 +42,7 @@ test.describe("ScriptLens release packaging", () => {
         path.join(build.stagingDir, "runtime-config.js"),
         "utf8"
       );
-      expect(stagedRuntimeConfig).toContain('defaultBackendTranscriptEndpoint: ""');
-      expect(stagedRuntimeConfig).toContain("allowBackendTranscriptFallbackByDefault: false");
+      expect(stagedRuntimeConfig).not.toMatch(/backend/i);
       expect(stagedRuntimeConfig).toContain("enableDefuddleExperiment: false");
     } finally {
       delete process.env.SCRIPTLENS_DIST_ROOT;
@@ -50,7 +50,7 @@ test.describe("ScriptLens release packaging", () => {
     }
   });
 
-  test("buildExtension injects configured backend origin into staged manifest and runtime config", async () => {
+  test("buildExtension applies the public site origin and ignores legacy backend env", async () => {
     const distRoot = fs.mkdtempSync(path.join(os.tmpdir(), "scriptlens-configured-build-"));
     process.env.SCRIPTLENS_DIST_ROOT = distRoot;
     process.env.SCRIPTLENS_BACKEND_ENDPOINT =
@@ -71,20 +71,11 @@ test.describe("ScriptLens release packaging", () => {
         "utf8"
       );
 
-      expect(build.runtimeConfig.defaultBackendTranscriptEndpoint).toBe(
-        "https://recovery.scriptlens.test/transcript/resolve"
-      );
       expect(build.runtimeConfig.enableDefuddleExperiment).toBeTruthy();
       expect(stagedManifest.host_permissions).toEqual(["https://www.youtube.com/*"]);
-      expect(stagedManifest.optional_host_permissions).toEqual([
-        "https://recovery.scriptlens.test/*"
-      ]);
+      expect(stagedManifest.optional_host_permissions).toBeUndefined();
       expect(stagedManifest.homepage_url).toBe("https://scriptlens.example/");
-      expect(stagedRuntimeConfig).toContain(
-        'defaultBackendTranscriptEndpoint: "https://recovery.scriptlens.test/transcript/resolve"'
-      );
-      expect(stagedRuntimeConfig).toContain("allowBackendTranscriptFallbackByDefault: true");
-      expect(stagedRuntimeConfig).toContain('backendPermissionMode: "optional"');
+      expect(stagedRuntimeConfig).not.toMatch(/backend|recovery\.scriptlens/i);
       expect(stagedRuntimeConfig).toContain('publicSiteOrigin: "https://scriptlens.example"');
       expect(stagedRuntimeConfig).toContain("enableDefuddleExperiment: true");
     } finally {

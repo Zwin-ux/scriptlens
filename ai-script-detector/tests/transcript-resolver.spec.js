@@ -18,7 +18,6 @@ const FILES = [
   "transcript/strategies/captionTrack.js",
   "transcript/strategies/domTranscript.js",
   "transcript/providers/youtubeResolver.js",
-  "transcript/providers/backendResolver.js",
   "transcript/acquire.js"
 ];
 

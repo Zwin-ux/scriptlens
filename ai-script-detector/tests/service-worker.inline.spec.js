@@ -38,7 +38,7 @@ test.describe("ScriptLens inline runtime routing", () => {
       }
     ]);
     expect(response.ok).toBeTruthy();
-    expect(response.inlineSettings.allowBackendTranscriptFallback).toBeTruthy();
+    expect(response.inlineSettings).toEqual({});
     expect(response.pageContext.tabId).toBe(321);
     expect(response.pageContext.windowId).toBe(7);
   });
@@ -101,10 +101,7 @@ test.describe("ScriptLens inline runtime routing", () => {
         allowFallbackText: false
       },
       {
-        maxTextLength: 18000,
-        allowBackendTranscriptFallback: true,
-        backendTranscriptEndpoint: "http://127.0.0.1:4317/transcript/resolve",
-        clientInstanceId: "client-inline-123"
+        maxTextLength: 18000
       },
       new AbortController().signal,
       "trace-inline",
@@ -118,13 +115,12 @@ test.describe("ScriptLens inline runtime routing", () => {
     expect(capturedContext).toBeTruthy();
     expect(capturedContext.domTranscriptLoader).toBeNull();
     expect(capturedContext.analysisMode).toBe("youtube-transcript-first");
-    expect(capturedContext.clientInstanceId).toBe("client-inline-123");
-    expect(capturedContext.allowAutomaticAsr).toBeTruthy();
-    expect(capturedContext.maxAutomaticAsrDurationSeconds).toBeGreaterThan(0);
+    expect(capturedContext.allowBackendTranscriptFallback).toBeUndefined();
+    expect(capturedContext.backendEndpoint).toBeUndefined();
     expect(capturedContext.requestedLanguageCode).toBe("en");
   });
 
-  test("prefers the selected caption track language for backend transcript recovery", () => {
+  test("prefers the selected caption track language for transcript acquisition", () => {
     const { sandbox } = loadServiceWorkerSandbox();
     sandbox.ScriptLens = {
       transcript: {
@@ -204,9 +200,7 @@ test.describe("ScriptLens inline runtime routing", () => {
         allowFallbackText: false
       },
       {
-        maxTextLength: 18000,
-        allowBackendTranscriptFallback: true,
-        backendTranscriptEndpoint: "http://127.0.0.1:4317/transcript/resolve"
+        maxTextLength: 18000
       },
       new AbortController().signal,
       "trace-panel",
@@ -293,9 +287,7 @@ test.describe("ScriptLens inline runtime routing", () => {
         allowFallbackText: false
       },
       {
-        maxTextLength: 18000,
-        allowBackendTranscriptFallback: false,
-        backendTranscriptEndpoint: ""
+        maxTextLength: 18000
       },
       new AbortController().signal,
       "trace-page-fetch",
@@ -879,9 +871,7 @@ function loadServiceWorkerSandbox(options = {}) {
       minCharacters: 180,
       minWords: 40,
       recentReportsLimit: 5,
-      debugMode: false,
-      allowBackendTranscriptFallback: true,
-      backendTranscriptEndpoint: "http://127.0.0.1:4317/transcript/resolve"
+      debugMode: false
     }
   };
   const sessionStorageState = {};

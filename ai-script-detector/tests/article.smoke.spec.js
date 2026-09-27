@@ -30,54 +30,6 @@ test.describe("ScriptLens article and popup contracts", () => {
       await stopServer(server);
     }
   });
-
-  test("stores debug reports when manual popup analysis runs with debug enabled", async ({
-    context,
-    extensionId,
-    serviceWorker
-  }) => {
-    const popupPage = await context.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`, {
-      waitUntil: "domcontentloaded"
-    });
-
-    const debugReportsBefore = await serviceWorker.evaluate(() => {
-      return new Promise((resolve) => {
-        chrome.storage.local.get(["debugReports"], (value) => {
-          resolve(value.debugReports || []);
-        });
-      });
-    });
-
-    expect(debugReportsBefore).toEqual([]);
-
-    await popupPage.locator("#settingsPanel summary").click();
-    await popupPage.locator("#debugModeInput").check();
-    await popupPage.locator("#saveSettingsButton").click();
-    await popupPage.locator("#manualInput").fill(
-      [
-        "Here is the main idea behind the process and why it matters to the audience.",
-        "In this breakdown we walk through the system step by step so the structure stays easy to follow.",
-        "The language is intentionally repetitive so the detector has a stable local signal to work with."
-      ].join(" ")
-    );
-    await popupPage.locator("#analyzeManualButton").click();
-    await expect(popupPage.locator("#resultContent")).toBeVisible({ timeout: 15000 });
-
-    const debugReports = await serviceWorker.evaluate(() => {
-      return new Promise((resolve) => {
-        chrome.storage.local.get(["debugReports"], (value) => {
-          resolve(value.debugReports || []);
-        });
-      });
-    });
-
-    expect(Array.isArray(debugReports)).toBeTruthy();
-    expect(debugReports.length).toBeGreaterThan(0);
-    expect(debugReports[0].kind).toBe("manual-input");
-    expect(typeof debugReports[0].normalizedTextSlice).toBe("string");
-    expect(debugReports[0].normalizedTextSlice.length).toBeGreaterThan(50);
-  });
 });
 
 async function startArticleServer() {

@@ -17,7 +17,6 @@ importScripts(
   "transcript/strategies/descriptionTranscript.js",
   "transcript/strategies/titleDescription.js",
   "transcript/providers/youtubeResolver.js",
-  "transcript/providers/backendResolver.js",
   "transcript/providers/nativeHelper.js",
   "transcript/acquire.js",
   "shared/service-worker-report.js"
@@ -28,9 +27,6 @@ const Contracts = globalThis.ScriptLensContracts || {};
 const ServiceWorkerReport = globalThis.ScriptLensServiceWorkerReport || {};
 const RuntimeConfig = globalThis.ScriptLensRuntimeConfig || {};
 const TranscriptPolicy = globalThis.ScriptLens?.transcript?.policy || {};
-const RECOVERY_POLICY = TranscriptPolicy.resolvePolicy
-  ? TranscriptPolicy.resolvePolicy()
-  : null;
 const logger = Debug.createLogger
   ? Debug.createLogger("service-worker")
   : console;
@@ -50,13 +46,6 @@ const SESSION_KEYS = {
   panelLaunchRequest: "panelLaunchRequest"
 };
 
-const DEFAULT_BACKEND_ENDPOINT =
-  typeof RuntimeConfig.defaultBackendTranscriptEndpoint === "string"
-    ? RuntimeConfig.defaultBackendTranscriptEndpoint.trim()
-    : "";
-const DEFAULT_BACKEND_RECOVERY_ENABLED =
-  Boolean(DEFAULT_BACKEND_ENDPOINT) &&
-  RuntimeConfig.allowBackendTranscriptFallbackByDefault !== false;
 const ENABLE_DEFUDDLE_EXPERIMENT = RuntimeConfig.enableDefuddleExperiment === true;
 
 const DEFAULT_SETTINGS = {
@@ -66,8 +55,6 @@ const DEFAULT_SETTINGS = {
   minWords: 40,
   recentReportsLimit: 5,
   debugMode: false,
-  allowBackendTranscriptFallback: DEFAULT_BACKEND_RECOVERY_ENABLED,
-  backendTranscriptEndpoint: DEFAULT_BACKEND_ENDPOINT,
   clientInstanceId: ""
 };
 
@@ -227,7 +214,6 @@ async function buildSurfaceInitResponse(message, includeLaunchRequest, sender) {
 async function buildInlineInitResponse(message, sender) {
   const targetTab = await resolveContextTab(message, sender, true);
   const pageContext = await getHydratedPageContext(targetTab);
-  const settings = await loadSettings();
   logger.info("inline init resolved", {
     targetTabId: targetTab?.id || null,
     supported: Boolean(pageContext?.supported),
@@ -236,9 +222,7 @@ async function buildInlineInitResponse(message, sender) {
   });
   return {
     ok: true,
-    inlineSettings: {
-      allowBackendTranscriptFallback: Boolean(settings.allowBackendTranscriptFallback)
-    },
+    inlineSettings: {},
     pageContext
   };
 }
@@ -736,12 +720,6 @@ async function resolveYouTubeAcquisition(
       signal,
       analysisMode,
       surface: options.surface || "unknown",
-      clientInstanceId: settings.clientInstanceId || "",
-      allowAutomaticAsr: transcriptRequested,
-      maxAutomaticAsrDurationSeconds: selectAutomaticAsrDurationLimit(options.surface),
-      allowBackendTranscriptFallback: Boolean(settings.allowBackendTranscriptFallback),
-      backendEndpoint: settings.backendTranscriptEndpoint || "",
-      extensionVersion: chrome.runtime.getManifest()?.version || "0.1.0",
       traceId,
       refreshAdapter: async () => {
         const refreshed = await requestTabExtraction(tabId, { type: "youtube:page-adapter" });
@@ -1458,10 +1436,6 @@ function buildTranscriptUnavailableMessage(acquisition) {
     return "ScriptLens found transcript info for this video, but YouTube did not return enough transcript text to score right now.";
   }
 
-  if (hasCode("backend_timeout")) {
-    return "ScriptLens found transcript info for this video, but the optional recovery step did not finish in time.";
-  }
-
   if (hasCode("language_mismatch") || hasCode("language_requested_mismatch")) {
     return "ScriptLens found transcript material, but it did not match the requested language closely enough to score safely.";
   }
@@ -1930,13 +1904,6 @@ function normalizeSettings(input) {
       ? input.clientInstanceId.trim()
       : buildClientInstanceId();
 
-  const backendTranscriptEndpoint =
-    typeof input.backendTranscriptEndpoint === "string" &&
-    input.backendTranscriptEndpoint.trim()
-      ? input.backendTranscriptEndpoint.trim()
-      : DEFAULT_SETTINGS.backendTranscriptEndpoint;
-  const backendRecoveryConfigured = Boolean(backendTranscriptEndpoint);
-
   return {
     ...DEFAULT_SETTINGS,
     sensitivity,
@@ -1947,13 +1914,7 @@ function normalizeSettings(input) {
       50000,
       DEFAULT_SETTINGS.maxTextLength
     ),
-    debugMode: Boolean(input.debugMode),
-    allowBackendTranscriptFallback:
-      backendRecoveryConfigured &&
-      typeof input.allowBackendTranscriptFallback === "boolean"
-        ? input.allowBackendTranscriptFallback
-        : DEFAULT_SETTINGS.allowBackendTranscriptFallback,
-    backendTranscriptEndpoint
+    debugMode: Boolean(input.debugMode)
   };
 }
 
@@ -1967,14 +1928,6 @@ function normalizeVideoSources(value) {
   const list = Array.isArray(value) ? value : [];
   const normalized = list.filter((source) => allowed.has(source));
   return normalized.length ? normalized : ["transcript"];
-}
-
-function selectAutomaticAsrDurationLimit(surface) {
-  const maxVideoLength = RECOVERY_POLICY?.backend?.maxVideoLengthSeconds || {};
-  if (surface === "inline") {
-    return maxVideoLength.automaticAsr || null;
-  }
-  return maxVideoLength.manualAsr || maxVideoLength.absolute || null;
 }
 
 async function getCurrentHost() {

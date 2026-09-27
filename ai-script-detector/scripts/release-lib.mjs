@@ -55,8 +55,7 @@ export function resolveReleasePaths(rootDir = ROOT_DIR, options = {}) {
 
 export function buildExtension(rootDir = ROOT_DIR, options = {}) {
   const { stagingDir } = resolveReleasePaths(rootDir, options);
-  const environment = createBuildEnvironment(options.environment || process.env, options);
-  const runtimeConfig = resolveBuildRuntimeConfig(environment);
+  const runtimeConfig = resolveBuildRuntimeConfig(options.environment || process.env);
   const manifest = loadManifest(rootDir);
 
   resetDirectory(stagingDir);
@@ -153,41 +152,12 @@ export function syncPublicDocsMirror(
   };
 }
 
-export function createBuildEnvironment(environment = process.env, options = {}) {
-  const backendMode = normalizePackagingBackendMode(options.backendMode);
-  if (backendMode !== "local-only") {
-    return environment;
-  }
-
-  const nextEnvironment = {
-    ...environment
-  };
-
-  delete nextEnvironment.SCRIPTLENS_BACKEND_ENDPOINT;
-  delete nextEnvironment.SCRIPTLENS_BACKEND_ORIGIN;
-
-  return nextEnvironment;
-}
-
 function resetDirectory(targetDir) {
   fs.rmSync(targetDir, {
     recursive: true,
     force: true
   });
   fs.mkdirSync(targetDir, { recursive: true });
-}
-
-export function normalizePackagingBackendMode(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  if (!normalized || normalized === "ambient") {
-    return "ambient";
-  }
-  if (normalized === "local-only") {
-    return "local-only";
-  }
-  throw new Error(
-    `Unsupported packaging backend mode "${value}". Expected "ambient" or "local-only".`
-  );
 }
 
 async function createZipArchive(sourceDir, zipPath) {
@@ -220,27 +190,14 @@ function toPowerShellPath(value) {
 }
 
 export function resolveBuildRuntimeConfig(environment = process.env) {
-  const endpoint = String(environment.SCRIPTLENS_BACKEND_ENDPOINT || "").trim();
-  const backendOrigin = normalizeOrigin(
-    String(environment.SCRIPTLENS_BACKEND_ORIGIN || endpoint || "").trim()
-  );
   const publicSiteOrigin = normalizeOrigin(
     String(environment.SCRIPTLENS_PUBLIC_SITE_ORIGIN || environment.SCRIPTLENS_PUBLIC_SITE_URL || "").trim()
   );
-  const backendPermissionMode =
-    String(environment.SCRIPTLENS_BACKEND_PERMISSION_MODE || "required").trim().toLowerCase() ===
-    "optional"
-      ? "optional"
-      : "required";
   const enableDefuddleExperiment = readBooleanEnv(
     environment.SCRIPTLENS_ENABLE_DEFUDDLE_EXPERIMENT
   );
 
   return {
-    defaultBackendTranscriptEndpoint: endpoint,
-    allowBackendTranscriptFallbackByDefault: Boolean(endpoint),
-    backendOrigin,
-    backendPermissionMode,
     publicSiteOrigin,
     enableDefuddleExperiment
   };
@@ -248,27 +205,6 @@ export function resolveBuildRuntimeConfig(environment = process.env) {
 
 function buildReleaseManifest(manifest, runtimeConfig) {
   const nextManifest = JSON.parse(JSON.stringify(manifest));
-  const backendPattern = runtimeConfig.backendOrigin
-    ? `${runtimeConfig.backendOrigin.replace(/\/$/, "")}/*`
-    : "";
-
-  if (backendPattern) {
-    if (runtimeConfig.backendPermissionMode === "optional") {
-      nextManifest.optional_host_permissions = dedupeList([
-        ...(nextManifest.optional_host_permissions || []),
-        backendPattern
-      ]);
-    } else {
-      nextManifest.host_permissions = dedupeList([
-        ...(nextManifest.host_permissions || []),
-        backendPattern
-      ]);
-    }
-  }
-
-  if (!nextManifest.optional_host_permissions?.length) {
-    delete nextManifest.optional_host_permissions;
-  }
 
   if (runtimeConfig.publicSiteOrigin) {
     nextManifest.homepage_url = `${runtimeConfig.publicSiteOrigin.replace(/\/$/, "")}/`;
@@ -282,11 +218,6 @@ function buildReleaseManifest(manifest, runtimeConfig) {
 function writeRuntimeConfig(targetPath, runtimeConfig) {
   const contents = `(function (root) {
   root.ScriptLensRuntimeConfig = {
-    defaultBackendTranscriptEndpoint: ${JSON.stringify(
-      runtimeConfig.defaultBackendTranscriptEndpoint || ""
-    )},
-    allowBackendTranscriptFallbackByDefault: ${runtimeConfig.allowBackendTranscriptFallbackByDefault ? "true" : "false"},
-    backendPermissionMode: ${JSON.stringify(runtimeConfig.backendPermissionMode)},
     publicSiteOrigin: ${JSON.stringify(runtimeConfig.publicSiteOrigin || "")},
     enableDefuddleExperiment: ${runtimeConfig.enableDefuddleExperiment ? "true" : "false"}
   };
@@ -309,10 +240,6 @@ function normalizeOrigin(value) {
   } catch (error) {
     return "";
   }
-}
-
-function dedupeList(values) {
-  return Array.from(new Set((Array.isArray(values) ? values : []).filter(Boolean)));
 }
 
 function readBooleanEnv(value) {

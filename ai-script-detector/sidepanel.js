@@ -124,11 +124,11 @@
     elements.videoSourceChips.addEventListener("click", handleVideoChipClick);
     elements.trackSelect.addEventListener("change", () => {
       state.videoSelection.trackBaseUrl = elements.trackSelect.value;
-      renderRecommendation();
+      renderRecommendedAction();
     });
     elements.allowFallbackTextInput.addEventListener("change", () => {
       state.videoSelection.allowFallbackText = elements.allowFallbackTextInput.checked;
-      renderRecommendation();
+      renderRecommendedAction();
     });
     elements.saveSettingsButton.addEventListener("click", saveSettings);
   }

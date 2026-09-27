@@ -30,7 +30,7 @@ npm install
 
 ### Development workflow
 
-1. Create a branch from `master`:
+1. Create a branch from `main`:
    ```bash
    git checkout -b fix/issue-name
    ```
@@ -53,7 +53,7 @@ npm install
    git commit -m "Fix: transcript parsing on HD videos"
    ```
 
-5. Push and open a pull request to `master`
+5. Push and open a pull request to `main`
 
 ### Code style
 

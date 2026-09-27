@@ -19,7 +19,6 @@ Use this when the inline YouTube flow fails on a real watch page.
      - `service-worker`
      - `transcript-acquire`
      - `youtube-resolver`
-     - `backend-resolver`
 
 3. Side panel or popup DevTools
    - Relevant scopes:

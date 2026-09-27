@@ -32,14 +32,14 @@
       <main class="content-main">
         <section class="content-hero">
           <div class="content-hero-copy">
-            <span class="eyebrow">Effective March 14, 2026</span>
-            <h1>ScriptLens keeps transcript scoring local by default.</h1>
+            <span class="eyebrow">Effective September 27, 2026</span>
+            <h1>ScriptLens runs entirely on your device.</h1>
             <p>
-              ScriptLens is a Chrome extension for desktop <code>youtube.com/watch</code> pages. Its single purpose is to analyze the writing style of YouTube transcripts for AI-like patterns. This policy explains what the extension accesses, what it stores, and when data may leave your device.
+              ScriptLens is a Chrome extension for desktop <code>youtube.com/watch</code> pages. Its single purpose is to analyze the writing style of YouTube transcripts for AI-like patterns. This policy explains what the extension accesses and what it stores. ScriptLens has no servers of its own, so nothing you analyze is sent to ScriptLens.
             </p>
             <div class="chip-row">
               <span class="chip">Local scoring</span>
-              <span class="chip warm">Limited recovery payload</span>
+              <span class="chip warm">No ScriptLens servers</span>
               <span class="chip alert">No ad-tech use</span>
             </div>
           </div>
@@ -51,14 +51,14 @@
               <p>The normal ScriptLens flow evaluates transcript content inside the extension runtime on your device.</p>
             </article>
             <article class="info-card">
-              <span class="eyebrow">When recovery is enabled</span>
-              <h3>Transfer stays narrow.</h3>
-              <p>Custom recovery-enabled builds only send the YouTube video ID and requested language to the configured backend so it can retrieve transcript-class input.</p>
+              <span class="eyebrow">Network</span>
+              <h3>Only YouTube is contacted.</h3>
+              <p>ScriptLens loads captions for the video you are watching directly from youtube.com, the same way the YouTube player does. It never contacts any other server.</p>
             </article>
             <article class="info-card">
               <span class="eyebrow">User control</span>
               <h3>Settings and data stay manageable.</h3>
-              <p>You can clear extension storage, remove the extension, or disable optional recovery in builds that expose that control.</p>
+              <p>You can change settings, clear extension storage, or remove the extension at any time.</p>
             </article>
           </div>
         </section>
@@ -90,7 +90,7 @@
             <span class="eyebrow">Local storage</span>
             <h2>What ScriptLens stores locally</h2>
             <ul class="list-check">
-              <li>Extension settings such as sensitivity and whether optional transcript recovery is enabled</li>
+              <li>Extension settings such as sensitivity, maximum text length, and debug mode</li>
               <li>A short recent-report history so the popup and workspace can show prior checks</li>
               <li>Dismissed UI hints and small session values used to pass the active video into the side panel</li>
               <li>Optional debug summaries when debug mode is enabled</li>
@@ -102,7 +102,7 @@
             <span class="eyebrow">Not collected</span>
             <h2>What the normal flow avoids</h2>
             <ul class="list-check">
-              <li>No transcript text is sent to a remote server for scoring in the default flow</li>
+              <li>No transcript text, score, or report is sent to ScriptLens or any third party</li>
               <li>No account login or cloud identity is required to use the extension</li>
               <li>No browsing history outside supported YouTube pages is collected</li>
               <li>No payment data, health data, passwords, or personal communications are collected</li>
@@ -111,17 +111,13 @@
           </article>
 
           <article class="content-card">
-            <span class="eyebrow">Optional recovery service</span>
-            <h2>When data can leave your device</h2>
+            <span class="eyebrow">Network requests</span>
+            <h2>When the extension uses the network</h2>
             <p>
-              The Chrome Web Store build is designed to work local-only. Some custom builds can use a configured hosted or self-hosted transcript recovery backend when local YouTube transcript paths do not return enough usable text. When that path is enabled and used, ScriptLens sends only:
+              To read a transcript, ScriptLens requests caption and transcript data for the active video from <code>https://www.youtube.com</code>. These requests go only to YouTube, use your existing YouTube session like the YouTube page itself, and are subject to YouTube's own privacy policy.
             </p>
-            <ul class="list-check">
-              <li>the YouTube video ID</li>
-              <li>the requested language, if one is selected</li>
-            </ul>
             <p>
-              The recovery backend may then fetch caption metadata, transcript metadata, or audio according to its own recovery policy. Scoring still runs inside the extension.
+              ScriptLens does not operate a backend, does not use analytics or telemetry, and does not send transcript text, scores, reports, or identifiers to any server. Scoring runs inside the extension on your device.
             </p>
           </article>
 
@@ -132,7 +128,6 @@
               <li><code>storage</code> to save settings, recent report summaries, and small session handoff state</li>
               <li><code>sidePanel</code> to open the advanced workspace view when you request it</li>
               <li>YouTube host access on <code>https://www.youtube.com/*</code> to read supported watch-page content</li>
-              <li>A fixed recovery-backend host permission in packaged builds that ship with hosted transcript recovery enabled</li>
             </ul>
           </article>
         </section>
@@ -142,7 +137,7 @@
             <span class="eyebrow">Support and policy updates</span>
             <h2>Questions about privacy or data flow?</h2>
             <p>
-              Use the public support route if you need clarification about a specific build, a recovery configuration, or how the extension handled a YouTube video.
+              Use the public support route if you need clarification about how the extension handled a YouTube video or how it treats your data.
             </p>
           </div>
           <div class="link-cluster">

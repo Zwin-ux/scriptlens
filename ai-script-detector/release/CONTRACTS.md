@@ -1,6 +1,6 @@
 # ScriptLens Contracts
 
-ScriptLens now treats the extension, backend, and QA tooling as consumers of one
+ScriptLens treats the extension surfaces and test tooling as consumers of one
 shared response contract.
 
 ## Stable analysis fields
@@ -25,7 +25,7 @@ The current contract version is `2026-03-11`.
 
 ## Shared error taxonomy
 
-Failure categories are intentionally broader than raw backend error codes:
+Failure categories are intentionally broader than raw error codes:
 
 - `policy`
 - `quality`
@@ -57,8 +57,7 @@ The release build keeps these message shapes stable:
 
 These build-time environment variables are considered release inputs:
 
-- `SCRIPTLENS_BACKEND_ENDPOINT`
-- `SCRIPTLENS_BACKEND_ORIGIN`
 - `SCRIPTLENS_PUBLIC_SITE_ORIGIN`
+- `SCRIPTLENS_ENABLE_DEFUDDLE_EXPERIMENT`
 
 Treat a drift in any of these interfaces as a test failure, not an ad hoc debug task.

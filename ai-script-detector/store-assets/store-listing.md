@@ -14,7 +14,7 @@ ScriptLens is a YouTube-only Chrome extension for desktop `youtube.com/watch` pa
 
 It adds an inline `Analyze video` button directly on YouTube so you can:
 
-- check the strongest available transcript path
+- read the transcript YouTube already provides for the video
 - review a verdict-first AI-like writing score
 - see plain-language explanations before opening the full workspace
 
@@ -28,29 +28,36 @@ For advanced users, ScriptLens also includes:
 
 - a toolbar popup with transcript controls and settings
 - a side-panel workspace with detailed signal breakdowns
-- optional transcript recovery through a compatible hosted or self-hosted backend
 
-Scoring runs inside the extension with deterministic heuristics. When local YouTube transcript paths are weak or unavailable, ScriptLens can use a configured transcript recovery service before giving up. That backend path is optional and can be ScriptLens-hosted or self-hosted.
+Everything runs on your device. ScriptLens reads captions directly from YouTube and scores them inside the extension with deterministic heuristics. It has no servers, accounts, analytics, or telemetry. When a video has no usable transcript, ScriptLens says so instead of guessing.
+
+The score is a heuristic signal about writing style, not proof of how a script was produced.
 
 ## Single-purpose statement
 
 ScriptLens has one purpose: analyze the writing style of YouTube video transcripts for AI-like patterns on desktop YouTube watch pages.
 
+## Permission justifications
+
+- `storage`: saves settings, a short recent-report history, and small session values that pass the active video to the side panel.
+- `sidePanel`: opens the detailed analysis workspace when the user asks for it.
+- Host access to `https://www.youtube.com/*`: shows the inline button on watch pages and reads the transcript for the active video.
+
+## Data usage disclosure
+
+ScriptLens does not collect or transmit user data. Transcript text is read from YouTube and analyzed locally; nothing is sent to ScriptLens or any third party.
+
 ## Privacy disclosure snippet
 
-ScriptLens processes scoring locally by default. If a configured transcript recovery service is enabled and ScriptLens needs it, the extension shares only the YouTube video ID and requested language with that service.
+ScriptLens runs entirely on your device. It loads captions for the active video directly from youtube.com and scores them inside the extension. No transcript text, scores, or identifiers are sent to any server.
 
 ## Support URL
 
-Set this to your Railway public site URL before submission, for example:
-
-https://your-scriptlens-site.example/support.html
+https://synergyaiscript.up.railway.app/support
 
 ## Privacy URL
 
-Set this to your Railway public site URL before submission, for example:
-
-https://your-scriptlens-site.example/privacy.html
+https://synergyaiscript.up.railway.app/privacy
 
 ## Public support route
 

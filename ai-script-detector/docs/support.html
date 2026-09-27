@@ -35,7 +35,7 @@
             <span class="eyebrow">Public support route</span>
             <h1>Use GitHub Issues for support and bug reports.</h1>
             <p>
-              ScriptLens uses a public support path so extension behavior, transcript recovery questions, and release issues can be tracked in one place. Include the exact YouTube URL and the surface where the issue appeared.
+              ScriptLens uses a public support path so extension behavior, transcript questions, and release issues can be tracked in one place. Include the exact YouTube URL and the surface where the issue appeared.
             </p>
             <div class="chip-row">
               <span class="chip">Inline widget</span>
@@ -60,9 +60,9 @@
               <p>Support is fastest when the issue includes the YouTube link, the Chrome version, the extension version, and the visible error text.</p>
             </article>
             <article class="info-card">
-              <span class="eyebrow">Recovery questions</span>
-              <h3>Say whether recovery was enabled.</h3>
-              <p>Transcript-availability issues are easier to triage when you note whether the build was the local-only store release or a custom recovery-enabled build.</p>
+              <span class="eyebrow">Transcript questions</span>
+              <h3>Check that captions exist.</h3>
+              <p>ScriptLens reads the transcript YouTube already provides. If the video has no captions or transcript on YouTube, note that in your report.</p>
             </article>
           </div>
         </section>
@@ -75,7 +75,7 @@
               <li>Reload the extension from <code>chrome://extensions</code> and refresh the YouTube tab</li>
               <li>Confirm you are on a desktop <code>youtube.com/watch</code> page</li>
               <li>Try the inline button first, then use the workspace if you need more detail</li>
-              <li>If the issue involves transcript recovery, note whether this build was local-only or had a custom recovery service configured</li>
+              <li>Check whether the video shows captions or a transcript on YouTube itself</li>
             </ul>
           </article>
 
@@ -94,7 +94,7 @@
             <span class="eyebrow">Common question</span>
             <h2>Why does ScriptLens say the transcript is unavailable?</h2>
             <p>
-              Some videos expose limited transcript data or block transcript text on the page. ScriptLens keeps the inline experience transcript-first. If local transcript recovery fails and you are using a custom recovery-enabled build, the extension can try that path before it reports that the transcript is unavailable.
+              ScriptLens only analyzes transcripts that YouTube itself provides for a video. Some videos have no captions, and YouTube sometimes limits transcript data on the page. When no usable transcript is available, ScriptLens says so instead of guessing. You can open the workspace and choose to analyze the title and description instead, with a clearly lower-confidence result.
             </p>
           </article>
 
@@ -103,14 +103,6 @@
             <h2>Where this release works</h2>
             <p>
               This Chrome Web Store release is intentionally scoped to desktop <code>youtube.com/watch</code> pages. It is not a generic website detector and it is not designed for Shorts or <code>m.youtube.com</code>.
-            </p>
-          </article>
-
-          <article class="content-card">
-            <span class="eyebrow">Optional backend</span>
-            <h2>Hosted or self-hosted recovery</h2>
-            <p>
-              The recovery backend is optional and separate from the store package. The Chrome Web Store release is designed to stay local-only, while open-source deployments can use a compatible hosted or self-hosted backend for stronger transcript recovery on harder videos. The detector release does not depend on a public community workflow or posting surface.
             </p>
           </article>
 

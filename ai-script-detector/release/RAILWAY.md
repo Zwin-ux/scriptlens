@@ -1,6 +1,6 @@
 # Railway Public Site
 
-ScriptLens uses Railway for the public landing, privacy, and support pages. The transcript recovery backend remains on Cloud Run.
+ScriptLens uses Railway for the public landing, privacy, and support pages. The extension itself has no backend.
 
 ## What Railway serves
 
@@ -13,7 +13,7 @@ The Railway service runs from the repository root and serves the static files in
 
 ## Why the root service exists
 
-Railway was connected to the repository root, but the repo root did not contain a deployable app. The root `package.json`, `server.js`, and `railway.json` provide an explicit Node entrypoint so Railway can build and run the public site without touching the Cloud Run backend.
+Railway was connected to the repository root, but the repo root did not contain a deployable app. The root `package.json`, `server.js`, and `railway.json` provide an explicit Node entrypoint so Railway can build and run the public site.
 
 ## Railway setup
 
@@ -42,4 +42,4 @@ That will set `homepage_url` in the packaged manifest to the Railway-hosted publ
 ## Current hosting split
 
 - Railway: public docs and support pages
-- Cloud Run: transcript recovery backend
+- Chrome Web Store: the extension package built from `ai-script-detector`

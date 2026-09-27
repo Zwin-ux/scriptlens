@@ -2,7 +2,7 @@
 
 ScriptLens is an open-source Chrome extension for transcript-first YouTube analysis.
 
-It adds an inline `Analyze video` workflow to desktop YouTube watch pages, scores AI-like writing patterns locally, and keeps hosted transcript recovery as an optional backend lane instead of a hidden dependency.
+It adds an inline `Analyze video` workflow to desktop YouTube watch pages and scores AI-like writing patterns entirely on your device. There is no backend: transcripts come straight from YouTube and nothing is sent to a ScriptLens server.
 
 [Public site](https://synergyaiscript.up.railway.app/) | [Extension README](ai-script-detector/README.md) | [Privacy policy](ai-script-detector/docs/privacy.html) | [Support](ai-script-detector/docs/support.html)
 
@@ -21,7 +21,7 @@ If you are reviewing the repo quickly, start here:
 - `ai-script-detector/transcript/` - transcript extraction, quality handling, and fallback boundaries.
 - `ai-script-detector/popup.*` and `ai-script-detector/sidepanel.*` - secondary extension surfaces.
 - `ai-script-detector/tests/` - Playwright and release-safety checks.
-- `ai-script-detector/release/` - packaging, backend, canary, and operations notes.
+- `ai-script-detector/release/` - release checklist, contracts, and debugging notes.
 - `ai-script-detector/docs/` - public site, privacy policy, and support source.
 
 ## Product Boundary
@@ -31,7 +31,7 @@ ScriptLens is intentionally narrow:
 - Supported target: desktop `https://www.youtube.com/watch?...`.
 - Primary workflow: inline transcript analysis on the watch page.
 - Store-facing detector: local-first scoring with deterministic heuristics.
-- Optional backend: transcript recovery only, configured by deployment.
+- No backend: the only network requests go to `www.youtube.com` for the active video's captions.
 - Not in scope for the store build: Shorts, `m.youtube.com`, generic page analysis, manual text analysis, or selection capture.
 
 That boundary is part of the product quality. The extension should not imply it can detect every AI artifact on the web.
@@ -49,7 +49,7 @@ That boundary is part of the product quality. The extension should not imply it 
 3. The extension reads the available transcript and scores the writing locally.
 4. The result card shows verdict, score, transcript quality, explanation, and optional details.
 5. The user can open the popup or side panel for deeper breakdowns.
-6. If a recovery endpoint is configured, only the YouTube video ID and requested language are sent for transcript recovery.
+6. If the video has no usable YouTube transcript, ScriptLens says so instead of guessing.
 
 ## Repository Layout
 
@@ -61,12 +61,12 @@ ai-script-detector/
   youtube-main.js       YouTube watch-page control flow
   youtube-overlay.js    inline result UI
   detector/             local scoring and signal logic
-  transcript/           transcript extraction and recovery contracts
+  transcript/           transcript extraction and quality contracts
   surface/              shared UI surface helpers
   popup.*               toolbar popup
   sidepanel.*           advanced workspace
   docs/                 public site, privacy, support
-  release/              canary, backend, packaging, operations notes
+  release/              release checklist, contracts, debugging notes
   scripts/              packaging and public-doc sync scripts
   store-assets/         store copy and screenshot checklist
   tests/                Playwright and release-safety tests
@@ -82,7 +82,7 @@ server.js
 
 ```bash
 cd ai-script-detector
-npm.cmd install
+npm install
 ```
 
 Load the extension unpacked:
@@ -97,12 +97,12 @@ Load the extension unpacked:
 Run these from `ai-script-detector/`:
 
 ```bash
-npm.cmd run ci:fast              # deterministic local gate
-npm.cmd run ci:smoke             # smoke gate
-npm.cmd run test:e2e             # Playwright suite
-npm.cmd run test:e2e:youtube     # YouTube surface smoke
-npm.cmd run build:extension      # unpacked Chrome release staging
-npm.cmd run package:extension    # Chrome Web Store zip
+npm run ci:fast              # deterministic local gate
+npm run ci:smoke             # smoke gate
+npm run test:e2e             # Playwright suite
+npm run test:e2e:youtube     # YouTube surface smoke
+npm run build:extension      # unpacked Chrome release staging
+npm run package:extension    # Chrome Web Store zip
 ```
 
 Release artifacts are written to `dist/chrome-unpacked` and `dist/packages`.
@@ -111,16 +111,11 @@ Release artifacts are written to `dist/chrome-unpacked` and `dist/packages`.
 
 - Public website and docs: Railway.
 - Chrome extension package: built from `ai-script-detector`.
-- Transcript recovery backend: separate Cloud Run lane.
 
-The public release target is local-only by default. Hosted recovery is a separate backend path and should be treated as release-critical only when the package is configured to depend on it.
-
-Backend and operations notes:
+Release notes:
 
 - [release/README.md](ai-script-detector/release/README.md)
-- [release/CLOUD_RUN.md](ai-script-detector/release/CLOUD_RUN.md)
 - [release/CONTRACTS.md](ai-script-detector/release/CONTRACTS.md)
-- [release/OPERATIONS.md](ai-script-detector/release/OPERATIONS.md)
 
 ## Public Docs
 

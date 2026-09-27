@@ -61,7 +61,7 @@
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>Detector path is showable; hosted recovery canary remains a documented backend risk</dd>
+                <dd>Local-only detector; no ScriptLens servers</dd>
               </div>
             </dl>
           </aside>
@@ -110,7 +110,7 @@
           <div>
             <span class="eyebrow">02</span>
             <strong>Local by default</strong>
-            <p>The store-facing detector can score on-device without a hosted recovery dependency.</p>
+            <p>Transcripts are read from YouTube and scored on your device. There is no ScriptLens server.</p>
           </div>
           <div>
             <span class="eyebrow">03</span>
@@ -124,7 +124,7 @@
             <span class="eyebrow">Shipping record</span>
             <h2>What is real in this repo.</h2>
             <p>
-              ScriptLens is not a mock landing page. The repo includes the extension runtime, public docs, packaging scripts, release readiness reports, store listing copy, issue templates, and Playwright coverage around the detector, backend resolver, release build, and staged QA flow.
+              ScriptLens is not a mock landing page. The repo includes the extension runtime, public docs, packaging scripts, store listing copy, issue templates, and Playwright coverage around the detector, transcript resolver, and release build.
             </p>
           </div>
 
@@ -152,10 +152,10 @@
             </article>
 
             <article>
-              <span class="eyebrow">Known risk</span>
-              <h3>Backend recovery canary</h3>
+              <span class="eyebrow">Known limit</span>
+              <h3>The video needs a transcript</h3>
               <p>
-                The latest staged canary artifact records a clustered hosted-recovery failure under auth-session. The public release target stays local-only, so this is documented as a backend recovery risk instead of hidden behind green marketing copy.
+                ScriptLens only analyzes captions or transcripts that YouTube provides. When a video has none, ScriptLens reports the transcript as unavailable instead of guessing.
               </p>
             </article>
           </div>
@@ -175,7 +175,7 @@
           <div class="scope-row">
             <span>Permissions</span>
             <strong><code>storage</code>, <code>sidePanel</code>, and YouTube host access</strong>
-            <p>Recovery-enabled builds add a fixed backend host permission when packaged for that mode.</p>
+            <p>No other hosts. ScriptLens does not contact any server besides youtube.com.</p>
           </div>
         </section>
       </main>

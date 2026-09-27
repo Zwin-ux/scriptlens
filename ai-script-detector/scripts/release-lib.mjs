@@ -27,8 +27,7 @@ export const RUNTIME_PATHS = [
   "surface",
   "transcript",
   "detector",
-  "utils",
-  "vendor"
+  "utils"
 ];
 
 export function loadManifest(rootDir = ROOT_DIR) {
@@ -193,13 +192,8 @@ export function resolveBuildRuntimeConfig(environment = process.env) {
   const publicSiteOrigin = normalizeOrigin(
     String(environment.SCRIPTLENS_PUBLIC_SITE_ORIGIN || environment.SCRIPTLENS_PUBLIC_SITE_URL || "").trim()
   );
-  const enableDefuddleExperiment = readBooleanEnv(
-    environment.SCRIPTLENS_ENABLE_DEFUDDLE_EXPERIMENT
-  );
-
   return {
-    publicSiteOrigin,
-    enableDefuddleExperiment
+    publicSiteOrigin
   };
 }
 
@@ -218,8 +212,7 @@ function buildReleaseManifest(manifest, runtimeConfig) {
 function writeRuntimeConfig(targetPath, runtimeConfig) {
   const contents = `(function (root) {
   root.ScriptLensRuntimeConfig = {
-    publicSiteOrigin: ${JSON.stringify(runtimeConfig.publicSiteOrigin || "")},
-    enableDefuddleExperiment: ${runtimeConfig.enableDefuddleExperiment ? "true" : "false"}
+    publicSiteOrigin: ${JSON.stringify(runtimeConfig.publicSiteOrigin || "")}
   };
 })(globalThis);
 `;
@@ -240,9 +233,4 @@ function normalizeOrigin(value) {
   } catch (error) {
     return "";
   }
-}
-
-function readBooleanEnv(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes";
 }

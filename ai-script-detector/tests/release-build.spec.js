@@ -14,6 +14,10 @@ test.describe("ScriptLens release packaging", () => {
     expect(manifest.host_permissions).toEqual(["https://www.youtube.com/*"]);
     expect(manifest.description).toContain("YouTube");
     expect(manifest.description).not.toContain("page");
+
+    const contentScriptFiles = manifest.content_scripts.flatMap((entry) => entry.js || []);
+    expect(contentScriptFiles.some((file) => /defuddle|vendor\//i.test(file))).toBeFalsy();
+    expect(contentScriptFiles).not.toContain("utils/dom.js");
   });
 
   test("buildExtension stages only runtime assets", async () => {
@@ -30,8 +34,8 @@ test.describe("ScriptLens release packaging", () => {
       expect(entries).toContain("shared/contracts.js");
       expect(entries).toContain("surface/shared.js");
       expect(entries).toContain("icons/icon128.png");
-      expect(entries).toContain("vendor/defuddle.js");
-      expect(entries).toContain("utils/defuddle-extractor.js");
+      expect(entries.some((entry) => entry.startsWith("vendor/"))).toBeFalsy();
+      expect(entries.some((entry) => /defuddle/i.test(entry))).toBeFalsy();
       expect(entries.some((entry) => entry.startsWith("tests/"))).toBeFalsy();
       expect(entries.some((entry) => entry.startsWith("backend/"))).toBeFalsy();
       expect(entries).not.toContain("transcript/providers/backendResolver.js");
@@ -42,15 +46,14 @@ test.describe("ScriptLens release packaging", () => {
         path.join(build.stagingDir, "runtime-config.js"),
         "utf8"
       );
-      expect(stagedRuntimeConfig).not.toMatch(/backend/i);
-      expect(stagedRuntimeConfig).toContain("enableDefuddleExperiment: false");
+      expect(stagedRuntimeConfig).not.toMatch(/backend|defuddle/i);
     } finally {
       delete process.env.SCRIPTLENS_DIST_ROOT;
       fs.rmSync(distRoot, { recursive: true, force: true });
     }
   });
 
-  test("buildExtension applies the public site origin and ignores legacy backend env", async () => {
+  test("buildExtension applies the public site origin and ignores legacy backend and Defuddle env", async () => {
     const distRoot = fs.mkdtempSync(path.join(os.tmpdir(), "scriptlens-configured-build-"));
     process.env.SCRIPTLENS_DIST_ROOT = distRoot;
     process.env.SCRIPTLENS_BACKEND_ENDPOINT =
@@ -71,13 +74,12 @@ test.describe("ScriptLens release packaging", () => {
         "utf8"
       );
 
-      expect(build.runtimeConfig.enableDefuddleExperiment).toBeTruthy();
+      expect(build.runtimeConfig).toEqual({ publicSiteOrigin: "https://scriptlens.example" });
       expect(stagedManifest.host_permissions).toEqual(["https://www.youtube.com/*"]);
       expect(stagedManifest.optional_host_permissions).toBeUndefined();
       expect(stagedManifest.homepage_url).toBe("https://scriptlens.example/");
-      expect(stagedRuntimeConfig).not.toMatch(/backend|recovery\.scriptlens/i);
+      expect(stagedRuntimeConfig).not.toMatch(/backend|recovery\.scriptlens|defuddle/i);
       expect(stagedRuntimeConfig).toContain('publicSiteOrigin: "https://scriptlens.example"');
-      expect(stagedRuntimeConfig).toContain("enableDefuddleExperiment: true");
     } finally {
       delete process.env.SCRIPTLENS_DIST_ROOT;
       delete process.env.SCRIPTLENS_BACKEND_ENDPOINT;

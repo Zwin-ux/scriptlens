@@ -47,38 +47,6 @@ test.describe("ScriptLens transcript resolver contracts", () => {
     expect(result.quality).toBe("weak-fallback");
   });
 
-  test("normalizes article content as a direct acquisition with no transcript provider", () => {
-    const sandbox = loadSandbox();
-    const articleText = Array.from({ length: 40 }, (_, index) => {
-      return `Paragraph ${index + 1} explains a concrete event with dates, places, and multiple supporting details.`;
-    }).join("\n\n");
-
-    const result = sandbox.ScriptLens.transcript.normalize.normalizeDirectAcquisition(
-      {
-        kind: "article-content",
-        sourceLabel: "Article content",
-        text: articleText,
-        coverageRatio: 0.42,
-        blockCount: 18
-      },
-      {
-        maxTextLength: 18000
-      }
-    );
-
-    expect(result.ok).toBeTruthy();
-    expect(result.kind).toBe("article-content");
-    expect(result.provider).toBeNull();
-    expect(result.strategy).toBeNull();
-    expect(result.quality).toBe("strong-transcript");
-    expect(result.sourceConfidence).toBe("high");
-    expect(result).not.toHaveProperty("recoveryTier");
-    expect(result.originKind).toBeNull();
-    expect(result.sourceTrustTier).toBeNull();
-    expect(result.segmentCount).toBe(0);
-    expect(result.segments).toEqual([]);
-  });
-
   test("prefers canonical language over translated when source class is otherwise similar", () => {
     const sandbox = loadSandbox();
     const normalize = sandbox.ScriptLens.transcript.normalize;

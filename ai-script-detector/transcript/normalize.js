@@ -47,7 +47,6 @@
     CONFIDENCE_RANK,
     QUALITY_RANK,
     normalizeCandidate,
-    normalizeDirectAcquisition,
     normalizeAttempts,
     compareCandidates,
     buildUnavailableResult,
@@ -244,98 +243,6 @@
       __nonLetterCharacterRatio: nonLetterCharacterRatio,
       __usableTranscript: usableTranscript,
       __priorityRank: STRATEGY_PRIORITY[strategy] || 99
-    };
-  }
-
-  function normalizeDirectAcquisition(rawCandidate, options) {
-    const safeOptions = {
-      maxTextLength: Number(options?.maxTextLength) || 18000,
-      analysisMode:
-        options?.analysisMode ||
-        PolicyApi.ANALYSIS_MODES?.genericText ||
-        "generic-text"
-    };
-    const kind = normalizeDirectKind(rawCandidate?.kind || rawCandidate?.sourceType);
-    const rawText = Text.sanitizeInput(rawCandidate?.text || "");
-    const truncated = Text.smartTruncate(rawText, safeOptions.maxTextLength);
-    const text = truncated.text;
-    const wordCount = Text.countWords(text);
-    const coverageRatio = toFiniteNumber(
-      rawCandidate?.coverageRatio ?? rawCandidate?.metadata?.coverageRatio
-    );
-    const blockCount = Math.max(
-      0,
-      Math.round(
-        Number(rawCandidate?.blockCount ?? rawCandidate?.metadata?.blockCount) || 0
-      )
-    );
-    const paragraphCount = Text.splitParagraphs(text).length;
-    const sourceConfidence = deriveDirectSourceConfidence({
-      kind,
-      wordCount,
-      blockCount,
-      paragraphCount,
-      coverageRatio
-    });
-    const quality = deriveDirectQuality(text, sourceConfidence);
-    const warnings = dedupeList(
-      []
-        .concat(rawCandidate?.warnings || [])
-        .concat(sourceConfidence === "low" ? ["weak_evidence"] : [])
-        .concat(kind === "selection" ? ["limited_context"] : [])
-        .concat(
-          kind === "page-content" &&
-            coverageRatio !== null &&
-            coverageRatio < 0.18
-            ? ["page_capture_noise"]
-            : []
-        )
-    );
-
-    return {
-      ok: Boolean(text),
-      kind,
-      analysisMode: safeOptions.analysisMode,
-      provider: null,
-      providerClass: "local",
-      strategy: null,
-      sourceLabel: buildDirectSourceLabel(kind, rawCandidate),
-      sourceConfidence,
-      quality,
-      acquisitionState: null,
-      transcriptRequiredSatisfied: true,
-      failureReason: null,
-      originKind: null,
-      sourceTrustTier: null,
-      winnerReason: null,
-      languageCode: normalizeLanguage(rawCandidate?.languageCode || null),
-      originalLanguageCode: normalizeLanguage(rawCandidate?.originalLanguageCode || null),
-      requestedLanguageCode: null,
-      isGenerated: null,
-      isTranslated: false,
-      isMachineTranslated: false,
-      segmentCount: 0,
-      avgSegmentLength: null,
-      coverageRatio,
-      videoDurationSeconds: null,
-      transcriptSpanSeconds: null,
-      segmentQualityScore: null,
-      truncated: Boolean(truncated.truncated),
-      warnings,
-      errors: Array.isArray(rawCandidate?.errors) ? rawCandidate.errors.slice() : [],
-      resolverAttempts: normalizeAttempts(rawCandidate?.resolverAttempts || []),
-      resolverPath: Array.isArray(rawCandidate?.resolverPath)
-        ? rawCandidate.resolverPath.slice()
-        : [],
-      winnerSelectedBy: Array.isArray(rawCandidate?.winnerSelectedBy)
-        ? rawCandidate.winnerSelectedBy.slice()
-        : [],
-      requestShapeValidation: null,
-      qualityGate: null,
-      text,
-      segments: [],
-      __wordCount: wordCount,
-      __paragraphCount: paragraphCount
     };
   }
 
@@ -827,50 +734,6 @@
     return "medium";
   }
 
-  function deriveDirectSourceConfidence(input) {
-    if (!input.wordCount) {
-      return "low";
-    }
-
-    if (input.kind === "manual-input") {
-      if (input.wordCount >= 500) {
-        return "high";
-      }
-      return input.wordCount >= 180 ? "medium" : "low";
-    }
-
-    if (input.kind === "selection") {
-      if (input.wordCount >= 320) {
-        return "high";
-      }
-      return input.wordCount >= 110 ? "medium" : "low";
-    }
-
-    if (input.kind === "article-content") {
-      if (
-        input.wordCount >= 450 &&
-        input.blockCount >= 5 &&
-        (input.coverageRatio === null || input.coverageRatio >= 0.18)
-      ) {
-        return "high";
-      }
-      return input.wordCount >= 180 ? "medium" : "low";
-    }
-
-    if (input.kind === "page-content") {
-      if (
-        input.wordCount >= 550 &&
-        input.blockCount >= 6 &&
-        (input.coverageRatio === null || input.coverageRatio >= 0.24)
-      ) {
-        return "high";
-      }
-      return input.wordCount >= 180 ? "medium" : "low";
-    }
-
-    return input.wordCount >= 180 ? "medium" : "low";
-  }
-
   function deriveQuality(input) {
     if (!input.text) {
       return "enhanced-extraction-unavailable";
@@ -895,19 +758,6 @@
     }
 
     return "enhanced-extraction-unavailable";
-  }
-
-  function deriveDirectQuality(text, sourceConfidence) {
-    if (!text) {
-      return "enhanced-extraction-unavailable";
-    }
-    if (sourceConfidence === "high") {
-      return "strong-transcript";
-    }
-    if (sourceConfidence === "medium") {
-      return "partial-transcript";
-    }
-    return "weak-fallback";
   }
 
   function isUsableTranscript(strategy, qualityGate) {
@@ -1063,23 +913,6 @@
     return "Transcript source";
   }
 
-  function buildDirectSourceLabel(kind, rawCandidate) {
-    if (rawCandidate?.sourceLabel) {
-      return rawCandidate.sourceLabel;
-    }
-
-    if (kind === "manual-input") {
-      return "Pasted text";
-    }
-    if (kind === "selection") {
-      return "Selected text";
-    }
-    if (kind === "article-content") {
-      return "Article content";
-    }
-    return "Visible page content";
-  }
-
   function isCanonicalLanguageCandidate(candidate) {
     if (candidate.isMachineTranslated || candidate.isTranslated) {
       return false;
@@ -1183,20 +1016,6 @@
   function normalizeQuality(value) {
     const normalized = String(value || "").trim().toLowerCase();
     return VALID_QUALITIES.has(normalized) ? normalized : null;
-  }
-
-  function normalizeDirectKind(value) {
-    const text = String(value || "").trim().toLowerCase();
-    if (text === "manual-input" || text === "manual") {
-      return "manual-input";
-    }
-    if (text === "selection") {
-      return "selection";
-    }
-    if (text === "article-content" || text === "article") {
-      return "article-content";
-    }
-    return "page-content";
   }
 
   function firstListValue(values) {

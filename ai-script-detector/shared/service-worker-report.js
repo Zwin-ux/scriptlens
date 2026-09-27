@@ -81,15 +81,7 @@
         segmentCount: acquisition?.segmentCount || 0,
         coverageRatio: acquisition?.coverageRatio ?? null,
         transcriptSpanSeconds: acquisition?.transcriptSpanSeconds ?? null,
-        qualityGate: acquisition?.qualityGate || null,
-        extractor: input.directMeta?.extractor || null,
-        extractorWarnings: Array.isArray(input.directMeta?.extractorWarnings)
-          ? input.directMeta.extractorWarnings.slice()
-          : [],
-        extractorDurationMs: input.directMeta?.extractorDurationMs ?? null,
-        legacyExtractorDurationMs: input.directMeta?.legacyExtractorDurationMs ?? null,
-        defuddleExtractorDurationMs: input.directMeta?.defuddleExtractorDurationMs ?? null,
-        defuddleAttempted: input.directMeta?.defuddleAttempted === true
+        qualityGate: acquisition?.qualityGate || null
       }
     };
   }

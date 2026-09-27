@@ -7,7 +7,6 @@
 
   const App = globalThis.AIScriptDetector || {};
   const Text = App.text;
-  const Dom = App.dom;
   const Debug = globalThis.ScriptLensDebug || {};
   const TestApi = (globalThis.ScriptLensContent = globalThis.ScriptLensContent || {});
   const logger = Debug.createLogger
@@ -44,10 +43,6 @@
 
   async function handleMessage(message) {
     switch (message?.type) {
-      case "extract:selection":
-        return extractSelectionPayload();
-      case "extract:page":
-        return extractPagePayload(message || {});
       case "youtube:page-adapter":
         return {
           ok: true,
@@ -61,7 +56,7 @@
       case "youtube:fetch-url":
         return fetchYouTubeUrl(message || {});
       case "page:context":
-        return buildPageContextPayload(message || {});
+        return buildPageContextPayload();
       default:
         return {
           ok: false,
@@ -70,60 +65,12 @@
     }
   }
 
-  function extractSelectionPayload() {
-    const text = Text.sanitizeInput(getSelectionText());
-    if (!text) {
-      return {
-        ok: false,
-        error: "No live text selection found on the page."
-      };
-    }
-
-    return {
-      ok: true,
-      text,
-      meta: {
-        sourceType: "selection",
-        sourceLabel: "Selection",
-        title: getDisplayTitle(),
-        includedSources: ["selection"]
-      }
-    };
-  }
-
-  function extractPagePayload(options = {}) {
-    const payload = extractDocumentPayload(options);
-    const text = Text.sanitizeInput(payload.text);
-    if (!text) {
-      return {
-        ok: false,
-        error: "No visible page text could be extracted."
-      };
-    }
-
-    const contentKind = payload.metadata?.contentKind || "page-content";
-
-    return {
-      ok: true,
-      text,
-      meta: {
-        sourceType: contentKind,
-        sourceLabel: resolvePageSourceLabel(contentKind, payload.metadata?.extractor),
-        title: getDisplayTitle(),
-        includedSources: [contentKind],
-        ...payload.metadata
-      }
-    };
-  }
-
-  async function buildPageContextPayload(options = {}) {
-    const pagePayload = extractDocumentPayload(options);
+  async function buildPageContextPayload() {
     const adapter = isYouTubeVideoPage() ? await buildYouTubePageAdapter() : null;
     const video = adapter ? buildVideoContextFromAdapter(adapter) : null;
     logger.info("buildPageContextPayload", {
       href: location.href,
       isYouTubeVideoPage: isYouTubeVideoPage(),
-      extractedWordCount: pagePayload.metadata?.extractedWordCount || 0,
       video: summarizeVideo(video)
     });
 
@@ -133,40 +80,12 @@
         supported: true,
         title: getDisplayTitle(),
         hostname: location.hostname,
-        selectionAvailable: Boolean(Text.sanitizeInput(getSelectionText())),
-        pageAvailable: pagePayload.metadata.extractedWordCount >= 30,
-        pageWordCount: pagePayload.metadata.extractedWordCount,
-        pageKind: pagePayload.metadata.contentKind || "page-content",
-        pageMeta: pagePayload.metadata,
         isYouTubeVideo: Boolean(adapter),
         transcriptAvailable: Boolean(video?.availableSources?.transcript),
         transcriptSourceLabel: video?.defaultTrackLabel || "",
         video
       }
     };
-  }
-
-  function extractDocumentPayload(options = {}) {
-    if (App.defuddleExtractor?.extractDocumentPayload) {
-      return App.defuddleExtractor.extractDocumentPayload(document, {
-        enableDefuddleExperiment: Boolean(options.enableDefuddleExperiment),
-        url: location.href
-      });
-    }
-
-    return Dom.extractVisibleDocumentPayload(document);
-  }
-
-  function resolvePageSourceLabel(contentKind, extractor) {
-    if (extractor === "defuddle") {
-      return contentKind === "article-content"
-        ? "Extracted article content"
-        : "Extracted page content";
-    }
-
-    return contentKind === "article-content"
-      ? "Article content"
-      : "Visible page content";
   }
 
   async function buildYouTubePageAdapter() {
@@ -465,36 +384,6 @@
       "";
 
     return Text.sanitizeInput(title).replace(/\s+-\s+YouTube$/i, "");
-  }
-
-  function getSelectionText() {
-    const selection = globalThis.getSelection?.();
-    const selectionText = selection ? String(selection).trim() : "";
-    if (selectionText) {
-      return selectionText;
-    }
-
-    const active = document.activeElement;
-    if (!active) {
-      return "";
-    }
-
-    const isTextField =
-      active instanceof HTMLTextAreaElement ||
-      (active instanceof HTMLInputElement &&
-        /^(text|search|email|url|tel)$/i.test(active.type || ""));
-
-    if (!isTextField) {
-      return "";
-    }
-
-    const start = active.selectionStart || 0;
-    const end = active.selectionEnd || 0;
-    if (end <= start) {
-      return "";
-    }
-
-    return active.value.slice(start, end);
   }
 
   function getCaptionTrackLabel(track) {
@@ -1161,6 +1050,5 @@
 
   TestApi.pickDefaultCaptionTrack = pickDefaultCaptionTrack;
   TestApi.buildVideoContextFromAdapter = buildVideoContextFromAdapter;
-  TestApi.extractPagePayload = extractPagePayload;
   TestApi.buildPageContextPayload = buildPageContextPayload;
 })();

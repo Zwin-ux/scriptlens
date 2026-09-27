@@ -56,9 +56,6 @@
         "surface/inline-state.js",
         "utils/text.js",
         "utils/stats.js",
-        "utils/dom.js",
-        "vendor/defuddle.js",
-        "utils/defuddle-extractor.js",
         "content.js",
         "youtube-overlay.js"
       ],

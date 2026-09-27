@@ -46,8 +46,7 @@
   });
 
   const PACKAGING_ENV_KEYS = Object.freeze({
-    publicSiteOrigin: "SCRIPTLENS_PUBLIC_SITE_ORIGIN",
-    enableDefuddleExperiment: "SCRIPTLENS_ENABLE_DEFUDDLE_EXPERIMENT"
+    publicSiteOrigin: "SCRIPTLENS_PUBLIC_SITE_ORIGIN"
   });
 
   const QUALITY_FAILURE_CODES = new Set([

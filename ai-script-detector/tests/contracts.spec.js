@@ -12,9 +12,7 @@ test.describe("ScriptLens shared contracts", () => {
     expect(Contracts.PACKAGING_ENV_KEYS.publicSiteOrigin).toBe(
       "SCRIPTLENS_PUBLIC_SITE_ORIGIN"
     );
-    expect(Contracts.PACKAGING_ENV_KEYS.enableDefuddleExperiment).toBe(
-      "SCRIPTLENS_ENABLE_DEFUDDLE_EXPERIMENT"
-    );
+    expect(Object.keys(Contracts.PACKAGING_ENV_KEYS)).toEqual(["publicSiteOrigin"]);
     expect(Contracts.FAILURE_CATEGORIES.transcriptSource).toBe("transcript-source");
   });
 

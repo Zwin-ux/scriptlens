@@ -53,6 +53,5 @@ The release build keeps these message shapes stable:
 These build-time environment variables are considered release inputs:
 
 - `SCRIPTLENS_PUBLIC_SITE_ORIGIN`
-- `SCRIPTLENS_ENABLE_DEFUDDLE_EXPERIMENT`
 
 Treat a drift in any of these interfaces as a test failure, not an ad hoc debug task.

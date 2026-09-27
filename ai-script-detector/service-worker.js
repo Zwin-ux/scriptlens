@@ -24,7 +24,6 @@ importScripts(
 const Debug = globalThis.ScriptLensDebug || {};
 const Contracts = globalThis.ScriptLensContracts || {};
 const ServiceWorkerReport = globalThis.ScriptLensServiceWorkerReport || {};
-const RuntimeConfig = globalThis.ScriptLensRuntimeConfig || {};
 const TranscriptPolicy = globalThis.ScriptLens?.transcript?.policy || {};
 const logger = Debug.createLogger
   ? Debug.createLogger("service-worker")
@@ -45,7 +44,6 @@ const SESSION_KEYS = {
   panelLaunchRequest: "panelLaunchRequest"
 };
 
-const ENABLE_DEFUDDLE_EXPERIMENT = RuntimeConfig.enableDefuddleExperiment === true;
 
 const DEFAULT_SETTINGS = {
   sensitivity: "medium",
@@ -345,17 +343,7 @@ async function handleAnalyze(message, options = {}) {
   });
 
   let analysis;
-  if (normalizedRequest.mode === "manual") {
-    analysis = await analyzeDirectText(normalizedRequest.text, settings, {
-      sourceType: "manual",
-      sourceLabel: "Pasted text",
-      title: "Pasted text"
-    });
-  } else if (normalizedRequest.mode === "selection") {
-    analysis = await analyzeSelection(targetTab, settings);
-  } else if (normalizedRequest.mode === "page") {
-    analysis = await analyzePage(targetTab, settings);
-  } else if (normalizedRequest.mode === "youtube") {
+  if (normalizedRequest.mode === "youtube") {
     analysis = await analyzeYouTube(
       targetTab,
       normalizedRequest,
@@ -424,110 +412,6 @@ async function buildSurfacePayload(pageContext) {
     sitePreference: await getSitePreference(normalizeHost(resolvedPageContext.hostname || "")),
     uiHints: await loadUiHints()
   };
-}
-
-async function analyzeSelection(tab, settings) {
-  const payload = await requestTabExtraction(tab?.id, { type: "extract:selection" });
-  if (!payload?.ok) {
-    return {
-      ok: false,
-      error: payload?.error || "No live text selection found on the page."
-    };
-  }
-
-  return analyzeDirectText(payload.text, settings, payload.meta || {});
-}
-
-async function analyzePage(tab, settings) {
-  const payload = await requestTabExtraction(tab?.id, {
-    type: "extract:page",
-    enableDefuddleExperiment: ENABLE_DEFUDDLE_EXPERIMENT
-  });
-  if (!payload?.ok) {
-    return {
-      ok: false,
-      error: payload?.error || "No visible page text could be extracted."
-    };
-  }
-
-  logger.info("direct page payload extracted", {
-    tabId: tab?.id || null,
-    extractor: payload?.meta?.extractor || "legacy",
-    extractorWarnings: Array.isArray(payload?.meta?.extractorWarnings)
-      ? payload.meta.extractorWarnings
-      : [],
-    extractorDurationMs: payload?.meta?.extractorDurationMs ?? null
-  });
-
-  return analyzeDirectText(payload.text, settings, payload.meta || {});
-}
-
-async function analyzeDirectText(text, settings, sourceMeta) {
-  const acquisition = buildDirectAcquisition(text, settings, sourceMeta);
-
-  if (!acquisition.ok || !acquisition.text) {
-    return {
-      ok: false,
-      error: "No usable content could be extracted from this source."
-    };
-  }
-
-  const sourceLabel = buildAnalysisDisplaySource(acquisition, sourceMeta?.title || "");
-  const detectionResult = globalThis.AIScriptDetector.detect.runDetection(acquisition.text, {
-    ...settings,
-    source: sourceLabel,
-    sourceConfidence: acquisition.sourceConfidence
-  });
-
-  if (!detectionResult.ok) {
-    return {
-      ok: false,
-      error: detectionResult.error
-    };
-  }
-
-  return {
-    ok: true,
-    report: buildAnalysisReport({
-      title: sourceMeta.title || sourceLabel,
-      sourceLabel,
-      acquisition,
-      directMeta: sourceMeta,
-      detection: detectionResult.detection,
-      legacyReport: detectionResult.legacyReport,
-      settings
-    })
-  };
-}
-
-function buildDirectAcquisition(text, settings, sourceMeta, overrides = {}) {
-  return globalThis.ScriptLens.transcript.normalize.normalizeDirectAcquisition(
-    {
-      kind: mapDirectKind(sourceMeta),
-      sourceType: sourceMeta?.sourceType,
-      sourceLabel: overrides.sourceLabel || sourceMeta?.sourceLabel,
-      title: sourceMeta?.title,
-      text,
-      coverageRatio: sourceMeta?.coverageRatio,
-      blockCount: sourceMeta?.blockCount,
-      warnings: []
-        .concat(sourceMeta?.extractorWarnings || [])
-        .concat(overrides.warnings || []),
-      resolverPath: sourceMeta?.extractor
-        ? [`directExtractor:${sourceMeta.extractor}`]
-        : [],
-      winnerSelectedBy: Array.isArray(overrides.winnerSelectedBy)
-        ? overrides.winnerSelectedBy
-        : sourceMeta?.extractor === "defuddle"
-          ? ["defuddle-direct-extraction"]
-          : []
-    },
-    {
-      maxTextLength: settings.maxTextLength,
-      analysisMode:
-        TranscriptPolicy.ANALYSIS_MODES?.genericText || "generic-text"
-    }
-  );
 }
 
 async function analyzeYouTube(tab, request, settings, traceId, options = {}) {
@@ -665,7 +549,7 @@ async function analyzeYouTube(tab, request, settings, traceId, options = {}) {
       title: adapter.title,
       sourceLabel,
       acquisition,
-      directMeta: buildYouTubeDirectReportMeta(acquisition),
+      directMeta: { sourceType: "youtube" },
       detection: detectionResult.detection,
       legacyReport: detectionResult.legacyReport,
       settings
@@ -774,24 +658,6 @@ async function resolveYouTubeAcquisition(
       });
   }
 
-  const defuddleFallback =
-    transcriptRequested &&
-    acquisition &&
-    !acquisition.ok &&
-    ENABLE_DEFUDDLE_EXPERIMENT &&
-    tabId
-      ? await buildDefuddleFallbackAcquisition(
-          tabId,
-          adapter,
-          settings,
-          acquisition,
-          traceId
-        )
-      : null;
-  if (defuddleFallback?.ok) {
-    return defuddleFallback;
-  }
-
   const fallbackSources = resolveFallbackSources(includeSources, adapter, allowFallbackText);
   const fallback = buildWeakFallbackAcquisition(
     adapter,
@@ -826,113 +692,6 @@ async function resolveYouTubeAcquisition(
   }
 
   return acquisition || fallback;
-}
-
-async function buildDefuddleFallbackAcquisition(
-  tabId,
-  adapter,
-  settings,
-  transcriptFailure,
-  traceId
-) {
-  const payload = await requestTabExtraction(tabId, {
-    type: "extract:page",
-    enableDefuddleExperiment: true
-  });
-
-  logger.info("youtube defuddle fallback payload", {
-    traceId,
-    tabId: tabId || null,
-    ok: Boolean(payload?.ok),
-    extractor: payload?.meta?.extractor || "",
-    warnings: Array.isArray(payload?.meta?.extractorWarnings)
-      ? payload.meta.extractorWarnings
-      : [],
-    extractorDurationMs: payload?.meta?.extractorDurationMs ?? null
-  });
-
-  if (!payload?.ok || !payload?.text || payload?.meta?.extractor !== "defuddle") {
-    return null;
-  }
-
-  const sourceMeta = {
-    ...(payload.meta || {}),
-    sourceLabel:
-      payload.meta?.contentKind === "article-content"
-        ? "Extracted article content"
-        : "Extracted page content",
-    title: adapter?.title || payload.meta?.title || ""
-  };
-  const directAcquisition = buildDirectAcquisition(
-    payload.text,
-    settings,
-    sourceMeta,
-    {
-      warnings: ["fallback_source", "user_fallback_override"],
-      winnerSelectedBy: ["defuddle-page-fallback"]
-    }
-  );
-
-  if (!directAcquisition.ok || !directAcquisition.text) {
-    return null;
-  }
-
-  if (transcriptFailure) {
-    directAcquisition.errors = []
-      .concat(transcriptFailure.errors || [])
-      .concat(directAcquisition.errors || []);
-    directAcquisition.resolverAttempts = []
-      .concat(transcriptFailure.resolverAttempts || [])
-      .concat(directAcquisition.resolverAttempts || []);
-    directAcquisition.resolverPath = []
-      .concat(transcriptFailure.resolverPath || [])
-      .concat(directAcquisition.resolverPath || []);
-    directAcquisition.failureReason = transcriptFailure.failureReason || null;
-  }
-
-  directAcquisition.directMeta = {
-    extractor: sourceMeta.extractor || null,
-    extractorWarnings: Array.isArray(sourceMeta.extractorWarnings)
-      ? sourceMeta.extractorWarnings.slice()
-      : [],
-    extractorDurationMs: sourceMeta.extractorDurationMs ?? null,
-    legacyExtractorDurationMs: sourceMeta.legacyExtractorDurationMs ?? null,
-    defuddleExtractorDurationMs: sourceMeta.defuddleExtractorDurationMs ?? null,
-    defuddleAttempted: sourceMeta.defuddleAttempted === true
-  };
-
-  return directAcquisition;
-}
-
-function buildYouTubeDirectReportMeta(acquisition) {
-  const directMeta = acquisition?.directMeta || {};
-  const inferredExtractor = inferDirectExtractor(acquisition);
-  const extractor = directMeta.extractor || inferredExtractor || null;
-
-  return {
-    sourceType: "youtube",
-    extractor,
-    extractorWarnings: Array.isArray(directMeta.extractorWarnings)
-      ? directMeta.extractorWarnings.slice()
-      : [],
-    extractorDurationMs: directMeta.extractorDurationMs ?? null,
-    legacyExtractorDurationMs: directMeta.legacyExtractorDurationMs ?? null,
-    defuddleExtractorDurationMs: directMeta.defuddleExtractorDurationMs ?? null,
-    defuddleAttempted:
-      directMeta.defuddleAttempted === true || extractor === "defuddle"
-  };
-}
-
-function inferDirectExtractor(acquisition) {
-  const resolverPath = Array.isArray(acquisition?.resolverPath)
-    ? acquisition.resolverPath
-    : [];
-  const directEntry = resolverPath.find((entry) => /^directExtractor:/.test(String(entry || "")));
-  if (!directEntry) {
-    return null;
-  }
-  const [, extractor] = String(directEntry).split(":", 2);
-  return extractor || null;
 }
 
 function buildWeakFallbackAcquisition(
@@ -1576,8 +1335,7 @@ async function getHydratedPageContext(tab) {
 
   try {
     const payload = await sendTabMessage(resolvedTab.id, {
-      type: "page:context",
-      enableDefuddleExperiment: ENABLE_DEFUDDLE_EXPERIMENT
+      type: "page:context"
     });
     if (!payload?.ok) {
       logger.warn("page context payload failed", {
@@ -1663,17 +1421,6 @@ function buildRecommendedRequest(context) {
 function resolveRequestedAction(pageContext, request) {
   if (!request || request.mode === "recommended") {
     return pageContext?.recommendedRequest || null;
-  }
-
-  if (request.mode === "selection" || request.mode === "page") {
-    return { mode: request.mode };
-  }
-
-  if (request.mode === "manual") {
-    return {
-      mode: "manual",
-      text: String(request.text || "")
-    };
   }
 
   if (request.mode === "youtube") {

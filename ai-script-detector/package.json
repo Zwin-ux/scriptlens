@@ -5,13 +5,10 @@
   "description": "Local-only ScriptLens Chrome extension for YouTube: tooling, packaging, and tests.",
   "scripts": {
     "build:extension": "node scripts/build-extension.mjs",
-    "build:defuddle-canary": "node scripts/defuddle-canary.mjs build",
     "ci:fast": "playwright test tests/contracts.spec.js tests/inline-state.spec.js tests/service-worker-report.spec.js tests/release-build.spec.js tests/shared-surface.spec.js tests/service-worker.inline.spec.js tests/transcript-resolver.spec.js tests/content.youtube.spec.js tests/detector-packaging.spec.js tests/detector-calibration.spec.js --reporter=line",
     "ci:smoke": "playwright test tests/youtube.smoke.spec.js --reporter=line",
     "debug:youtube-transcript": "node scripts/debug-youtube-transcript.mjs",
     "package:extension": "node scripts/package-extension.mjs",
-    "package:defuddle-canary": "node scripts/defuddle-canary.mjs package",
-    "test:defuddle-canary": "node scripts/defuddle-canary.mjs test",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:youtube": "playwright test tests/youtube.smoke.spec.js --headed",

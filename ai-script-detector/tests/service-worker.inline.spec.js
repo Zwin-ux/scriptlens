@@ -32,8 +32,7 @@ test.describe("ScriptLens inline runtime routing", () => {
       {
         tabId: 321,
         message: {
-          type: "page:context",
-          enableDefuddleExperiment: false
+          type: "page:context"
         }
       }
     ]);
@@ -311,148 +310,7 @@ test.describe("ScriptLens inline runtime routing", () => {
     });
   });
 
-  test("uses defuddle-backed page content as a direct YouTube fallback when the experiment is enabled", async () => {
-    const { sandbox } = loadServiceWorkerSandbox({
-      runtimeConfig: {
-        enableDefuddleExperiment: true
-      }
-    });
-    const extractionCalls = [];
-
-    sandbox.requestTabExtraction = async (_tabId, message) => {
-      extractionCalls.push(message);
-      if (message?.type === "extract:page") {
-        return {
-          ok: true,
-          text: [
-            "This extracted page content includes enough complete sentences to be scored safely.",
-            "It comes from the YouTube watch page after transcript recovery failed.",
-            "The copy is long enough to avoid the short-sample fallback."
-          ].join(" "),
-          meta: {
-            sourceType: "page-content",
-            sourceLabel: "Extracted page content",
-            title: "Fallback sample video",
-            extractor: "defuddle",
-            extractorWarnings: [],
-            coverageRatio: 0.34,
-            blockCount: 5,
-            contentKind: "page-content"
-          }
-        };
-      }
-      throw new Error(`Unexpected extraction request: ${message?.type || "unknown"}`);
-    };
-
-    sandbox.ScriptLens = {
-      transcript: {
-        acquire: {
-          resolveBestTranscript: async () => ({
-            ok: false,
-            kind: "transcript",
-            failureReason: "caption_fetch_failed",
-            errors: [
-              {
-                strategy: "caption-track",
-                code: "caption_fetch_failed"
-              }
-            ],
-            resolverAttempts: [
-              {
-                provider: "youtubeResolver",
-                strategy: "caption-track",
-                ok: false,
-                skipped: false,
-                durationMs: 8,
-                warningCodes: [],
-                errorCode: "caption_fetch_failed"
-              }
-            ],
-            resolverPath: ["youtubeResolver:caption-track"],
-            winnerSelectedBy: ["caption_fetch_failed"]
-          })
-        },
-        normalize: {
-          normalizeDirectAcquisition(raw) {
-            return {
-              ok: true,
-              kind: raw.kind,
-              provider: null,
-              providerClass: "local",
-              strategy: null,
-              sourceLabel: raw.sourceLabel,
-              sourceConfidence: "medium",
-              quality: "partial-transcript",
-              acquisitionState: null,
-              transcriptRequiredSatisfied: true,
-              failureReason: null,
-              originKind: null,
-              sourceTrustTier: null,
-              winnerReason: null,
-              languageCode: "en",
-              originalLanguageCode: "en",
-              warnings: raw.warnings || [],
-              errors: [],
-              resolverAttempts: [],
-              resolverPath: raw.resolverPath || [],
-              winnerSelectedBy: raw.winnerSelectedBy || [],
-              text: raw.text,
-              coverageRatio: raw.coverageRatio,
-              blockCount: raw.blockCount
-            };
-          },
-          buildUnavailableResult() {
-            throw new Error("buildUnavailableResult should not be called in this test");
-          },
-          normalizeCandidate() {
-            throw new Error("normalizeCandidate should not be called in this test");
-          },
-          stripInternalFields(value) {
-            return value;
-          }
-        }
-      }
-    };
-
-    const result = await sandbox.resolveYouTubeAcquisition(
-      {
-        title: "Fallback sample video",
-        videoDurationSeconds: 120,
-        description: "Fallback description that should not be used when Defuddle succeeds."
-      },
-      321,
-      {
-        includeSources: ["transcript", "description", "title"],
-        requireTranscript: false,
-        allowFallbackText: true
-      },
-      {
-        maxTextLength: 18000
-      },
-      new AbortController().signal,
-      "trace-defuddle-fallback",
-      {
-        surface: "panel",
-        allowDomTranscriptLoader: true
-      }
-    );
-
-    expect(result.ok).toBeTruthy();
-    expect(result.kind).toBe("page-content");
-    expect(result.sourceLabel).toBe("Extracted page content");
-    expect(result.providerClass).toBe("local");
-    expect(result.resolverPath).toContain("youtubeResolver:caption-track");
-    expect(result.resolverPath).toContain("directExtractor:defuddle");
-    expect(result.warnings).toContain("fallback_source");
-    expect(extractionCalls).toEqual([
-      {
-        type: "extract:page",
-        enableDefuddleExperiment: true
-      }
-    ]);
-  });
-
-  test("keeps title and description fallback when the defuddle experiment is off", async () => {
+  test("keeps title and description fallback after a transcript failure", async () => {
     const { sandbox } = loadServiceWorkerSandbox();
 
     sandbox.ScriptLens = {
@@ -531,19 +389,15 @@ test.describe("ScriptLens inline runtime routing", () => {
     expect(result.sourceLabel).toBe("Title + description fallback");
   });
 
-  test("does not invoke defuddle fallback when transcript was never requested", async () => {
-    const { sandbox } = loadServiceWorkerSandbox({
-      runtimeConfig: {
-        enableDefuddleExperiment: true
-      }
-    });
+  test("does not request page extraction when transcript was never requested", async () => {
+    const { sandbox } = loadServiceWorkerSandbox();
     const extractionCalls = [];
 
     sandbox.requestTabExtraction = async (_tabId, message) => {
       extractionCalls.push(message);
       return {
         ok: true,
-        text: "Defuddle should not run for title-and-description-only requests."
+        text: "Page extraction should not run for title-and-description-only requests."
       };
     };
 
@@ -616,123 +470,6 @@ test.describe("ScriptLens inline runtime routing", () => {
     expect(result.strategy).toBe("title-description");
     expect(result.acquisitionState).toBe("fallback-text-only");
     expect(extractionCalls).toEqual([]);
-  });
-
-  test("preserves direct extractor metadata in YouTube reports when direct fallback wins", async () => {
-    const { sandbox } = loadServiceWorkerSandbox();
-
-    sandbox.requestTabExtraction = async (_tabId, message) => {
-      if (message?.type === "youtube:page-adapter") {
-        return {
-          ok: true,
-          adapter: {
-            title: "Fallback sample video",
-            videoId: "fallback123",
-            videoDurationSeconds: 120,
-            bootstrapSnapshot: {
-              captionTracks: []
-            }
-          }
-        };
-      }
-      throw new Error(`Unexpected extraction request: ${message?.type || "unknown"}`);
-    };
-    sandbox.getTabById = async () => ({
-      id: 321,
-      url: "https://www.youtube.com/watch?v=fallback123"
-    });
-    sandbox.resolveYouTubeAcquisition = async () => ({
-      ok: true,
-      kind: "page-content",
-      provider: null,
-      providerClass: "local",
-      strategy: null,
-      sourceLabel: "Extracted page content",
-      sourceConfidence: "medium",
-      quality: "partial-transcript",
-      acquisitionState: null,
-      transcriptRequiredSatisfied: true,
-      failureReason: null,
-      originKind: null,
-      sourceTrustTier: null,
-      winnerReason: null,
-      languageCode: null,
-      originalLanguageCode: null,
-      warnings: ["fallback_source"],
-      errors: [],
-      resolverAttempts: [],
-      resolverPath: ["youtubeResolver:caption-track", "directExtractor:defuddle"],
-      winnerSelectedBy: ["defuddle-page-fallback"],
-      coverageRatio: 0.34,
-      text: [
-        "This extracted page content includes enough complete sentences to be scored safely.",
-        "It replaced a weak transcript fallback on the YouTube watch page."
-      ].join(" "),
-      directMeta: {
-        extractor: "defuddle",
-        extractorWarnings: [],
-        extractorDurationMs: 18,
-        legacyExtractorDurationMs: 6,
-        defuddleExtractorDurationMs: 12,
-        defuddleAttempted: true
-      }
-    });
-    sandbox.AIScriptDetector = sandbox.AIScriptDetector || {};
-    sandbox.AIScriptDetector.detect = {
-      runDetection() {
-        return {
-          ok: true,
-          detection: {
-            aiScore: 27,
-            verdict: "Likely human / unclear",
-            explanation: "The extracted page content did not trigger a strong AI-like pattern match.",
-            reasons: ["The extracted page content did not trigger a strong AI-like pattern match."],
-            categoryScores: {},
-            triggeredPatterns: [],
-            flaggedSentences: []
-          },
-          legacyReport: {
-            metadata: {
-              wordCount: 160,
-              sentenceCount: 5
-            }
-          }
-        };
-      }
-    };
-
-    const result = await sandbox.analyzeYouTube(
-      {
-        id: 321,
-        url: "https://www.youtube.com/watch?v=fallback123"
-      },
-      {
-        mode: "youtube",
-        includeSources: ["transcript", "description", "title"],
-        requireTranscript: false,
-        allowFallbackText: true
-      },
-      {
-        sensitivity: "medium",
-        maxTextLength: 18000,
-        minCharacters: 180,
-        minWords: 40
-      },
-      "trace-youtube-direct-report-meta",
-      {
-        surface: "panel",
-        allowDomTranscriptLoader: true
-      }
-    );
-
-    expect(result.ok).toBeTruthy();
-    expect(result.report.sourceMeta.kind).toBe("page-content");
-    expect(result.report.sourceMeta.extractor).toBe("defuddle");
-    expect(result.report.sourceMeta.extractorWarnings).toEqual([]);
-    expect(result.report.sourceMeta.extractorDurationMs).toBe(18);
-    expect(result.report.sourceMeta.legacyExtractorDurationMs).toBe(6);
-    expect(result.report.sourceMeta.defuddleExtractorDurationMs).toBe(12);
-    expect(result.report.sourceMeta.defuddleAttempted).toBeTruthy();
   });
 
   test("returns an unscored transcript report when a transcript is too short to score", async () => {

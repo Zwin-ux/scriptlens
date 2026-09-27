@@ -11,12 +11,8 @@
     "youtubei-transcript": 1,
     "caption-track": 2,
     "dom-transcript": 3,
-    "backend-transcript": 4,
-    "backend-headless-transcript": 5,
-    "backend-asr": 6,
-    "description-transcript": 7,
-    "title-description": 8,
-    "local-whisper": 9
+    "description-transcript": 4,
+    "title-description": 5
   };
 
   const CONFIDENCE_RANK = {
@@ -43,17 +39,8 @@
   const TRANSCRIPT_STRATEGIES = new Set([
     "youtubei-transcript",
     "caption-track",
-    "dom-transcript",
-    "backend-transcript",
-    "backend-headless-transcript",
-    "backend-asr"
+    "dom-transcript"
   ]);
-
-  const ESCALATION_FAILURE_CODES = new Set(
-    Array.isArray(PolicyApi.ESCALATION_FAILURE_CODES)
-      ? PolicyApi.ESCALATION_FAILURE_CODES
-      : []
-  );
 
   Transcript.normalize = {
     STRATEGY_PRIORITY,
@@ -70,7 +57,6 @@
     isRealTranscriptSource,
     isEligibleTranscriptCandidate,
     mapTranscriptAcquisitionState,
-    shouldEscalateToBackend,
     getFailureCodes
   };
 
@@ -87,14 +73,12 @@
 
     const strategy = rawCandidate?.strategy || "title-description";
     const provider = rawCandidate?.provider || "youtubeResolver";
-    const providerClass = deriveProviderClass(rawCandidate?.providerClass, provider);
     const requestedLanguageCode = normalizeLanguage(
       rawCandidate?.requestedLanguageCode || safeOptions.requestedLanguageCode || null
     );
     const originKind = deriveOriginKind(rawCandidate, strategy);
     const sourceTrustTier = deriveSourceTrustTier(originKind);
-    const recoveryTier = deriveRecoveryTier(rawCandidate, providerClass, originKind);
-    const sourceLabel = buildSourceLabel(strategy, rawCandidate, originKind);
+    const sourceLabel = buildSourceLabel(strategy, rawCandidate);
     const segments = normalizeSegments(rawCandidate?.segments || [], strategy);
     const rawText = buildCandidateText(rawCandidate, segments, strategy);
     const truncated = Text.smartTruncate(rawText, safeOptions.maxTextLength);
@@ -151,11 +135,8 @@
 
     let sourceConfidence =
       normalizeConfidence(rawCandidate?.sourceConfidence) ||
-      deriveSourceConfidence(strategy, isGenerated, providerClass, originKind);
+      deriveSourceConfidence(strategy, isGenerated);
     if (languageDecision.status === "downgrade") {
-      sourceConfidence = downgradeConfidence(sourceConfidence);
-    }
-    if (sourceTrustTier === "audio-derived") {
       sourceConfidence = downgradeConfidence(sourceConfidence);
     }
 
@@ -171,8 +152,6 @@
       uniqueSegmentRatio,
       averageWordsPerSegment,
       nonLetterCharacterRatio,
-      originKind,
-      sourceTrustTier,
       languageDecision
     });
     const usableTranscript = isUsableTranscript(strategy, qualityGate);
@@ -194,9 +173,6 @@
         .concat(strategy === "description-transcript" ? ["weak_evidence"] : [])
         .concat(isGenerated ? ["generated_captions"] : [])
         .concat(isTranslated ? ["translated_text"] : [])
-        .concat(providerClass === "backend" ? ["backend_fallback_used"] : [])
-        .concat(sourceTrustTier === "audio-derived" ? ["audio_derived_reduced_trust"] : [])
-        .concat(sourceTrustTier === "headless-derived" ? ["headless_recovery"] : [])
         .concat(languageDecision.warningCodes)
         .concat(
           qualityGate && !qualityGate.eligible
@@ -222,7 +198,7 @@
       kind: "transcript",
       analysisMode: safeOptions.analysisMode,
       provider,
-      providerClass,
+      providerClass: "local",
       strategy,
       sourceLabel,
       sourceConfidence,
@@ -230,7 +206,6 @@
       acquisitionState: mapTranscriptAcquisitionState(quality, ok),
       transcriptRequiredSatisfied: usableTranscript,
       failureReason,
-      recoveryTier,
       originKind,
       sourceTrustTier,
       winnerReason,
@@ -330,7 +305,6 @@
       acquisitionState: null,
       transcriptRequiredSatisfied: true,
       failureReason: null,
-      recoveryTier: null,
       originKind: null,
       sourceTrustTier: null,
       winnerReason: null,
@@ -380,11 +354,7 @@
 
   function buildUnavailableResult(input) {
     const errors = Array.isArray(input?.errors) ? input.errors.slice() : [];
-    const warnings = dedupeList(
-      []
-        .concat(input?.warnings || [])
-        .concat(input?.helperUnavailable ? ["enhanced_extraction_unavailable"] : [])
-    );
+    const warnings = dedupeList([].concat(input?.warnings || []));
     const winnerReason =
       String(input?.winnerReason || "").trim() ||
       firstListValue(input?.winnerSelectedBy) ||
@@ -400,7 +370,7 @@
         PolicyApi.ANALYSIS_MODES?.youtubeTranscriptFirst ||
         "youtube-transcript-first",
       provider: input?.provider || "youtubeResolver",
-      providerClass: input?.providerClass || "local",
+      providerClass: "local",
       strategy: input?.strategy || "transcript-unavailable",
       sourceLabel: input?.sourceLabel || "Transcript unavailable",
       sourceConfidence: input?.sourceConfidence || "low",
@@ -408,7 +378,6 @@
       acquisitionState: "transcript-unavailable",
       transcriptRequiredSatisfied: false,
       failureReason,
-      recoveryTier: input?.recoveryTier || deriveFailureRecoveryTier(input),
       originKind: "unavailable",
       sourceTrustTier: "unavailable",
       winnerReason,
@@ -569,16 +538,6 @@
       };
     }
 
-    if (left.providerClass !== right.providerClass) {
-      const winner = left.providerClass === "local" ? left : right;
-      const loser = winner === left ? right : left;
-      return {
-        winner,
-        loser,
-        reasons: ["privacy-tiebreaker:local"]
-      };
-    }
-
     const winner = (left.__priorityRank || 99) <= (right.__priorityRank || 99) ? left : right;
     const loser = winner === left ? right : left;
     return {
@@ -621,49 +580,6 @@
       return "partial-transcript";
     }
     return "fallback-text-only";
-  }
-
-  function shouldEscalateToBackend(candidate) {
-    const failureCodes = getFailureCodes(candidate);
-    if (failureCodes.includes("navigation_changed")) {
-      return {
-        shouldEscalate: false,
-        reason: "navigation_changed"
-      };
-    }
-
-    if (failureCodes.some((code) => ESCALATION_FAILURE_CODES.has(code))) {
-      return {
-        shouldEscalate: true,
-        reason: failureCodes.find((code) => ESCALATION_FAILURE_CODES.has(code))
-      };
-    }
-
-    if (!candidate?.ok) {
-      return {
-        shouldEscalate: true,
-        reason: "no_transcript_class_source"
-      };
-    }
-
-    if (!isTranscriptClassQuality(candidate.quality)) {
-      return {
-        shouldEscalate: true,
-        reason: "quality_below_threshold"
-      };
-    }
-
-    if (!candidate.qualityGate?.eligible) {
-      return {
-        shouldEscalate: true,
-        reason: firstListValue(candidate.qualityGate?.rejectedReasons) || "quality_gate_rejected"
-      };
-    }
-
-    return {
-      shouldEscalate: false,
-      reason: "local_transcript_eligible"
-    };
   }
 
   function getFailureCodes(candidate) {
@@ -744,10 +660,7 @@
       input.videoDurationSeconds,
       input.transcriptSpanSeconds
     );
-    const coverageThreshold =
-      input.originKind === "audio_asr"
-        ? effectiveThresholds.minCoverageRatioAudio
-        : effectiveThresholds.minCoverageRatioTranscript;
+    const coverageThreshold = effectiveThresholds.minCoverageRatioTranscript;
 
     if (!input.text || input.wordCount < effectiveThresholds.minWordCount) {
       rejectedReasons.push("word_count_below_threshold");
@@ -898,28 +811,7 @@
       .filter((segment) => Boolean(segment.text));
   }
 
-  function deriveProviderClass(explicitValue, provider) {
-    const value = String(explicitValue || "").trim().toLowerCase();
-    if (value === "backend") {
-      return "backend";
-    }
-    if (value === "local") {
-      return "local";
-    }
-
-    return /backend/i.test(String(provider || "")) ? "backend" : "local";
-  }
-
-  function deriveSourceConfidence(strategy, isGenerated, providerClass, originKind) {
-    if (originKind === "audio_asr") {
-      return "low";
-    }
-    if (originKind === "headless_transcript") {
-      return "medium";
-    }
-    if (providerClass === "backend" && strategy === "backend-transcript") {
-      return "high";
-    }
+  function deriveSourceConfidence(strategy, isGenerated) {
     if (strategy === "youtubei-transcript") {
       return "medium";
     }
@@ -932,7 +824,7 @@
     if (strategy === "description-transcript" || strategy === "title-description") {
       return "low";
     }
-    return providerClass === "backend" ? "high" : "medium";
+    return "medium";
   }
 
   function deriveDirectSourceConfidence(input) {
@@ -1149,15 +1041,9 @@
     return span + words;
   }
 
-  function buildSourceLabel(strategy, rawCandidate, originKind) {
+  function buildSourceLabel(strategy, rawCandidate) {
     if (rawCandidate?.sourceLabel) {
       return rawCandidate.sourceLabel;
-    }
-    if (originKind === "audio_asr") {
-      return "Audio-derived transcript";
-    }
-    if (originKind === "headless_transcript") {
-      return "Headless transcript recovery";
     }
     if (strategy === "youtubei-transcript") {
       return rawCandidate?.trackLabel || "YouTube transcript";
@@ -1168,23 +1054,11 @@
     if (strategy === "dom-transcript") {
       return "Visible transcript";
     }
-    if (strategy === "backend-transcript") {
-      return "Recovered transcript";
-    }
-    if (strategy === "backend-headless-transcript") {
-      return "Recovered transcript";
-    }
-    if (strategy === "backend-asr") {
-      return "Audio-derived transcript";
-    }
     if (strategy === "description-transcript") {
       return "Description transcript";
     }
     if (strategy === "title-description") {
       return "Title + description fallback";
-    }
-    if (strategy === "local-whisper") {
-      return "Recovered transcript";
     }
     return "Transcript source";
   }
@@ -1256,26 +1130,6 @@
       return PolicyApi.getSourceTrustTier(originKind);
     }
     return originKind || "unavailable";
-  }
-
-  function deriveRecoveryTier(rawCandidate, providerClass, originKind) {
-    if (rawCandidate?.recoveryTier) {
-      return rawCandidate.recoveryTier;
-    }
-    if (originKind === "audio_asr") {
-      return "hosted_asr";
-    }
-    if (providerClass === "backend") {
-      return "hosted_transcript";
-    }
-    return "local";
-  }
-
-  function deriveFailureRecoveryTier(input) {
-    if (String(input?.strategy || "").includes("backend")) {
-      return "hosted_transcript";
-    }
-    return input?.providerClass === "backend" ? "hosted_transcript" : "local";
   }
 
   function compareTrustOrder(left, right) {
@@ -1391,7 +1245,6 @@
         minWordCount: 120,
         minSentenceUnits: 3,
         minCoverageRatioTranscript: 0.2,
-        minCoverageRatioAudio: 0.25,
         minUniqueSegmentRatio: 0.55,
         minAverageWordsPerSegment: 2.5,
         minAverageWordsPerSegmentCount: 20,

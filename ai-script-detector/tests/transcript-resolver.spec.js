@@ -72,7 +72,7 @@ test.describe("ScriptLens transcript resolver contracts", () => {
     expect(result.strategy).toBeNull();
     expect(result.quality).toBe("strong-transcript");
     expect(result.sourceConfidence).toBe("high");
-    expect(result.recoveryTier).toBeNull();
+    expect(result).not.toHaveProperty("recoveryTier");
     expect(result.originKind).toBeNull();
     expect(result.sourceTrustTier).toBeNull();
     expect(result.segmentCount).toBe(0);
@@ -232,7 +232,7 @@ test.describe("ScriptLens transcript resolver contracts", () => {
     expect(result.segments.length).toBe(2);
   });
 
-  test("classifies youtubei FAILED_PRECONDITION and escalates it to backend", async () => {
+  test("classifies youtubei FAILED_PRECONDITION as a transcript failure", async () => {
     const sandbox = loadSandbox({
       fetch: async () => ({
         ok: false,
@@ -292,10 +292,10 @@ test.describe("ScriptLens transcript resolver contracts", () => {
       warnings: result.warningCodes
     });
 
-    const escalation =
-      sandbox.ScriptLens.transcript.normalize.shouldEscalateToBackend(unavailable);
-    expect(escalation.shouldEscalate).toBeTruthy();
-    expect(escalation.reason).toBe("youtubei_failed_precondition");
+    expect(unavailable.failureReason).toBe("youtubei_failed_precondition");
+    expect(sandbox.ScriptLens.transcript.normalize.getFailureCodes(unavailable)).toContain(
+      "youtubei_failed_precondition"
+    );
   });
 
   test("reads a caption-track transcript successfully from json3", async () => {
@@ -577,100 +577,99 @@ test.describe("ScriptLens transcript resolver contracts", () => {
     expect(result.errors.some((error) => error.code === "navigation_changed")).toBeTruthy();
   });
 
-  test("eligible backend transcript beats a local candidate that fails the transcript quality gate", () => {
+  test("an eligible caption track beats a candidate that fails the transcript quality gate", () => {
     const sandbox = loadSandbox();
     const normalize = sandbox.ScriptLens.transcript.normalize;
 
-    const localPartial = normalize.normalizeCandidate(
+    const partial = normalize.normalizeCandidate(
       buildCaptionCandidate({
-        providerClass: "local",
         sourceConfidence: "medium",
         segments: Array.from({ length: 8 }, (_, index) => ({
           startMs: index * 10000,
           durationMs: 5000,
-          text: `Local segment ${index + 1} carries some transcript coverage but not enough to be complete.`
+          text: `Short segment ${index + 1} carries some transcript coverage but not enough to be complete.`
         })),
         videoDurationSeconds: 420
       }),
       { maxTextLength: 18000 }
     );
-    const backendStrong = normalize.normalizeCandidate(
-      buildBackendCandidate({
+    const strong = normalize.normalizeCandidate(
+      buildCaptionCandidate({
         sourceConfidence: "high",
         segments: Array.from({ length: 18 }, (_, index) => ({
           startMs: index * 15000,
           durationMs: 12000,
-          text: `Backend segment ${index + 1} carries materially stronger transcript coverage and quality for the comparison.`
+          text: `Full segment ${index + 1} carries materially stronger transcript coverage and quality for the comparison.`
         })),
         videoDurationSeconds: 420
       }),
       { maxTextLength: 18000 }
     );
 
-    const comparison = normalize.compareCandidates(localPartial, backendStrong);
-    expect(comparison.winner.providerClass).toBe("backend");
+    expect(partial.qualityGate.eligible).toBeFalsy();
+    expect(strong.qualityGate.eligible).toBeTruthy();
+    const comparison = normalize.compareCandidates(partial, strong);
+    expect(comparison.winner).toBe(strong);
     expect(comparison.reasons[0]).toMatch(/^(transcript-over-fallback|quality-gate:)/);
   });
 
-  test("eligible manual captions beat a weaker headless transcript candidate on trust order", () => {
+  test("a direct YouTube transcript beats generated captions on trust order", () => {
     const sandbox = loadSandbox();
     const normalize = sandbox.ScriptLens.transcript.normalize;
+    const segments = Array.from({ length: 12 }, (_, index) => ({
+      startMs: index * 12000,
+      durationMs: 11000,
+      text: `Segment ${index + 1} keeps enough spoken detail to remain an eligible transcript source for the comparison.`
+    }));
 
-    const localManual = normalize.normalizeCandidate(
+    const direct = normalize.normalizeCandidate(
       buildCaptionCandidate({
-        providerClass: "local",
+        strategy: "youtubei-transcript",
+        sourceLabel: "YouTube transcript",
         sourceConfidence: "high",
-        segments: Array.from({ length: 12 }, (_, index) => ({
-          startMs: index * 12000,
-          durationMs: 11000,
-          text: `Local segment ${index + 1} keeps enough spoken detail to remain a strong manual caption source for the comparison.`
-        })),
-        videoDurationSeconds: 240
+        isGenerated: null,
+        segments
       }),
       { maxTextLength: 18000 }
     );
-    const backendHeadless = normalize.normalizeCandidate(
-      buildBackendCandidate({
-        sourceConfidence: "medium",
-        strategy: "backend-headless-transcript",
-        sourceLabel: "Headless transcript panel",
-        segments: Array.from({ length: 12 }, (_, index) => ({
-          startMs: index * 12000,
-          durationMs: 11000,
-          text: `Headless segment ${index + 1} is usable, but it still comes from a weaker recovery path than direct or manual transcript sources.`
-        })),
-        videoDurationSeconds: 240
+    const generated = normalize.normalizeCandidate(
+      buildCaptionCandidate({
+        sourceConfidence: "high",
+        isGenerated: true,
+        segments
       }),
       { maxTextLength: 18000 }
     );
 
-    const comparison = normalize.compareCandidates(localManual, backendHeadless);
-    expect(comparison.winner.providerClass).toBe("local");
-    expect(comparison.reasons[0]).toBe("trust-tier:caption-derived>headless-derived");
+    expect(direct.qualityGate.eligible).toBeTruthy();
+    expect(generated.qualityGate.eligible).toBeTruthy();
+    const comparison = normalize.compareCandidates(generated, direct);
+    expect(comparison.winner).toBe(direct);
+    expect(comparison.reasons[0]).toBe("trust-tier:direct-transcript>caption-derived");
   });
 
-  test("marks audio-derived transcripts as reduced-trust even when they pass quality checks", () => {
+  test("normalizes every candidate as a local source without recovery metadata", () => {
     const sandbox = loadSandbox();
     const normalize = sandbox.ScriptLens.transcript.normalize;
 
-    const audioDerived = normalize.normalizeCandidate(
-      buildBackendCandidate({
-        strategy: "backend-asr",
-        sourceLabel: "Audio-derived transcript",
-        sourceConfidence: "medium",
-        segments: Array.from({ length: 14 }, (_, index) => ({
-          startMs: index * 10000,
-          durationMs: 9000,
-          text: `Audio transcript segment ${index + 1} carries enough lexical detail to pass the transcript quality gate despite reduced trust.`
-        })),
-        videoDurationSeconds: 210
+    const candidate = normalize.normalizeCandidate(
+      buildCaptionCandidate({
+        providerClass: "backend",
+        recoveryTier: "hosted_transcript"
       }),
       { maxTextLength: 18000 }
     );
+    const unavailable = normalize.buildUnavailableResult({
+      providerClass: "backend",
+      recoveryTier: "hosted_transcript",
+      strategy: "caption-track"
+    });
 
-    expect(audioDerived.sourceTrustTier).toBe("audio-derived");
-    expect(audioDerived.warnings).toContain("audio_derived_reduced_trust");
-    expect(audioDerived.qualityGate.eligible).toBeTruthy();
+    for (const result of [candidate, unavailable]) {
+      expect(result.providerClass).toBe("local");
+      expect(result).not.toHaveProperty("recoveryTier");
+      expect(result.warnings).not.toContain("backend_fallback_used");
+    }
   });
 
   test("caps detector confidence by source confidence", () => {
@@ -712,30 +711,6 @@ function buildCaptionCandidate(overrides = {}) {
       text: `Segment ${index + 1} with enough text to count as a usable caption segment.`
     })),
     warnings: [],
-    ...overrides
-  };
-}
-
-function buildBackendCandidate(overrides = {}) {
-  return {
-    ok: true,
-    provider: "backendResolver",
-    providerClass: "backend",
-    strategy: "backend-transcript",
-    sourceLabel: "Backend transcript fallback",
-    languageCode: "en",
-    originalLanguageCode: "en",
-    requestedLanguageCode: null,
-    isGenerated: false,
-    isTranslated: false,
-    isMachineTranslated: false,
-    videoDurationSeconds: 240,
-    segments: Array.from({ length: 14 }, (_, index) => ({
-      startMs: index * 12000,
-      durationMs: 10000,
-      text: `Backend segment ${index + 1} contains enough text to act as a usable transcript fallback.`
-    })),
-    warnings: ["backend_fallback_used"],
     ...overrides
   };
 }

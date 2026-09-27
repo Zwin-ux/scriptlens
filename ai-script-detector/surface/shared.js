@@ -65,14 +65,7 @@
     const acquisitionQuality = notScored ? "Not scored" : formatAcquisitionQuality(acquisition);
     const acquisitionClass = notScored ? "partial-transcript" : acquisition?.quality || "weak-fallback";
     const inputLabel = report.inputQuality?.label || report.quality?.label || "Weak input";
-    const providerLabel =
-      acquisition.kind === "transcript"
-        ? acquisition.sourceTrustTier === "audio-derived"
-          ? "Audio-derived transcript"
-          : acquisition.providerClass === "backend"
-          ? "Recovered transcript"
-          : "Local transcript"
-        : "Local content";
+    const providerLabel = acquisition.kind === "transcript" ? "Local transcript" : "Local content";
     const acquisitionStateNote =
       notScored
         ? acquisition.kind === "transcript"
@@ -92,7 +85,6 @@
     const sourceMeta = acquisition.kind === "transcript"
       ? [
           providerLabel,
-          acquisition.recoveryTier ? `Recovery: ${formatRecoveryTier(acquisition.recoveryTier)}` : "",
           acquisition.originKind ? `Origin: ${formatOriginKind(acquisition.originKind)}` : "",
           acquisition.sourceTrustTier ? `Trust: ${formatTrustTier(acquisition.sourceTrustTier)}` : "",
           acquisition.isGenerated === true
@@ -110,7 +102,6 @@
           acquisition.languageCode || ""
         ];
     const confidenceMeta = [
-      acquisition.sourceTrustTier === "audio-derived" ? "Reduced trust" : "",
       acquisition.isGenerated === true ? "Generated" : acquisition.isGenerated === false ? "Manual" : "",
       acquisition.coverageRatio != null
         ? `${Math.round(acquisition.coverageRatio * 100)}% coverage`
@@ -125,7 +116,7 @@
     }
 
     return {
-      contractVersion: report.contractVersion || Contracts.CONTRACT_VERSION || "2026-03-11",
+      contractVersion: report.contractVersion || Contracts.CONTRACT_VERSION || "2026-09-27",
       failureCategory:
         report.failureCategory ||
         Contracts.resolveFailureCategory?.(report) ||
@@ -163,13 +154,11 @@
           ? acquisition.kind === "transcript"
             ? "ScriptLens intentionally skipped scoring because the recovered transcript was too short or sentence-poor for a reliable heuristic read."
             : "ScriptLens intentionally skipped scoring because the extracted content sample was too short or sparse for a reliable heuristic read."
-          : acquisition.sourceTrustTier === "audio-derived"
-            ? "Detector confidence is capped because the source was reconstructed from audio."
-            : acquisition.kind !== "transcript"
-              ? "Detector confidence is capped by extraction cleanliness and sample size."
-              : acquisition.quality === "weak-fallback"
-                ? "Detector confidence is capped because this score comes from title and description fallback."
-                : "Detector confidence is capped by source confidence and sample size.",
+          : acquisition.kind !== "transcript"
+            ? "Detector confidence is capped by extraction cleanliness and sample size."
+            : acquisition.quality === "weak-fallback"
+              ? "Detector confidence is capped because this score comes from title and description fallback."
+              : "Detector confidence is capped by source confidence and sample size.",
       inputSummary: report.inputQuality?.summary || report.quality?.summary || "",
       interpretationMeans: report.interpretation?.means || "",
       interpretationNotMeans: report.interpretation?.notMeans || report.disclaimer || "",
@@ -243,7 +232,7 @@
       .join(" - ");
 
     return {
-      contractVersion: report.contractVersion || Contracts.CONTRACT_VERSION || "2026-03-11",
+      contractVersion: report.contractVersion || Contracts.CONTRACT_VERSION || "2026-09-27",
       failureCategory:
         report.failureCategory ||
         Contracts.resolveFailureCategory?.(report) ||
@@ -257,13 +246,7 @@
       confidenceLabel,
       secondaryBadgeLabel: notScored
         ? "Not enough text to score"
-        : acquisition.sourceTrustTier === "audio-derived"
-          ? "Audio-derived transcript"
-          : `${confidenceLabel} transcript quality`,
-      reducedTrustLabel:
-        acquisition.sourceTrustTier === "audio-derived"
-          ? "Audio-derived transcript"
-          : "",
+        : `${confidenceLabel} transcript quality`,
       detailSummary,
       transcriptMeta,
       reasonPreview: (report.topReasons || detection.reasons || []).slice(0, 3),
@@ -271,7 +254,6 @@
       canShowDetails: Boolean(acquisition.kind === "transcript"),
       advancedSourceLabel: acquisition.sourceLabel || "Transcript",
       advancedSourceMeta: [
-        acquisition.recoveryTier ? formatRecoveryTier(acquisition.recoveryTier) : "",
         acquisition.originKind ? formatOriginKind(acquisition.originKind) : "",
         acquisition.sourceTrustTier ? formatTrustTier(acquisition.sourceTrustTier) : "",
         acquisition.languageCode || "unknown language"
@@ -430,12 +412,6 @@
     if (acquisition.kind !== "transcript") {
       return acquisition.sourceLabel || formatSourceKind(acquisition.kind);
     }
-    if (acquisition.sourceTrustTier === "audio-derived") {
-      return "Recovered transcript";
-    }
-    if (acquisition.providerClass === "backend") {
-      return "Recovered transcript";
-    }
     if (acquisition.strategy === "title-description") {
       return "Title and description";
     }
@@ -480,24 +456,10 @@
     if (!acquisition?.qualityGate) {
       return "";
     }
-    const reducedTrustPrefix =
-      acquisition.sourceTrustTier === "audio-derived"
-        ? "Audio-derived transcript: ScriptLens reconstructed this text from audio, so trust is reduced compared with captions or a direct transcript. "
-        : "";
     if (acquisition.qualityGate.eligible) {
-      return `${reducedTrustPrefix}Quality gate passed (${acquisition.qualityGate.wordCount || 0} words, ${acquisition.qualityGate.sentenceUnits || 0} sentence units).`;
+      return `Quality gate passed (${acquisition.qualityGate.wordCount || 0} words, ${acquisition.qualityGate.sentenceUnits || 0} sentence units).`;
     }
-    return `${reducedTrustPrefix}Quality gate rejected: ${(acquisition.qualityGate.rejectedReasons || []).join(", ") || "unknown"}.`;
-  }
-
-  function formatRecoveryTier(value) {
-    if (value === "hosted_asr") {
-      return "Hosted ASR";
-    }
-    if (value === "hosted_transcript") {
-      return "Hosted transcript recovery";
-    }
-    return "Local recovery";
+    return `Quality gate rejected: ${(acquisition.qualityGate.rejectedReasons || []).join(", ") || "unknown"}.`;
   }
 
   function formatOriginKind(value) {
@@ -510,12 +472,6 @@
     if (value === "generated_caption_track") {
       return "Generated captions";
     }
-    if (value === "headless_transcript") {
-      return "Headless transcript";
-    }
-    if (value === "audio_asr") {
-      return "Audio ASR";
-    }
     return capitalize(String(value || "unknown").replace(/_/g, " "));
   }
 
@@ -525,12 +481,6 @@
     }
     if (value === "caption-derived") {
       return "Caption-derived";
-    }
-    if (value === "headless-derived") {
-      return "Headless-derived";
-    }
-    if (value === "audio-derived") {
-      return "Audio-derived";
     }
     return capitalize(String(value || "unknown").replace(/_/g, " "));
   }

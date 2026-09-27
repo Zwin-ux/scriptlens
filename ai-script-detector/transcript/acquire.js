@@ -35,8 +35,9 @@
       traceId,
       totalTimeoutMs
     });
-    const navigationChanged =
-      Transcript.normalize.shouldEscalateToBackend(localResult).reason === "navigation_changed";
+    const navigationChanged = Transcript.normalize
+      .getFailureCodes(localResult)
+      .includes("navigation_changed");
 
     const result = Transcript.normalize.isEligibleTranscriptCandidate(localResult)
       ? localResult

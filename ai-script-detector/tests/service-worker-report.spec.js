@@ -21,11 +21,10 @@ test.describe("ScriptLens service worker report helpers", () => {
       {
         acquisition: {
           kind: "transcript",
-          sourceLabel: "Recovered transcript",
+          sourceLabel: "Caption track",
           sourceConfidence: "high",
           quality: "strong-transcript",
-          providerClass: "backend",
-          recoveryTier: "hosted_transcript",
+          providerClass: "local",
           originKind: "manual_caption_track",
           sourceTrustTier: "caption-derived",
           winnerReason: "quality-eligible:manual_caption_track"
@@ -33,8 +32,8 @@ test.describe("ScriptLens service worker report helpers", () => {
         detection: {
           aiScore: 42,
           verdict: "Mixed / possibly assisted",
-          explanation: "Recovered transcript path stayed strong.",
-          reasons: ["Recovered transcript path stayed strong."],
+          explanation: "Manual caption path stayed strong.",
+          reasons: ["Manual caption path stayed strong."],
           categoryScores: {},
           triggeredPatterns: [],
           flaggedSentences: []
@@ -48,7 +47,7 @@ test.describe("ScriptLens service worker report helpers", () => {
         settings: {
           sensitivity: "medium"
         },
-        sourceLabel: "YouTube video - Demo - Recovered transcript",
+        sourceLabel: "YouTube video - Demo - Caption track",
         directMeta: {
           sourceType: "youtube"
         }
@@ -58,10 +57,13 @@ test.describe("ScriptLens service worker report helpers", () => {
       }
     );
 
-    expect(report.contractVersion).toBe("2026-03-11");
+    expect(report.contractVersion).toBe("2026-09-27");
     expect(report.analysisMode).toBe("youtube-transcript-first");
     expect(report.failureCategory).toBeNull();
     expect(report.scoringStatus).toBe("scored");
+    expect(report.sourceMeta).not.toHaveProperty("recoveryTier");
+    expect(report.sourceInfo).not.toHaveProperty("recoveryTier");
+    expect(report.inputQuality.reasons).toContain("Source origin: manual_caption_track.");
   });
 
   test("builds insufficient-input reports without regressing to generic errors", () => {
@@ -90,7 +92,7 @@ test.describe("ScriptLens service worker report helpers", () => {
       },
       detectionError:
         "The text is too short for a useful heuristic read. Try at least 40 words or 180 characters.",
-      sourceLabel: "Recovered transcript",
+      sourceLabel: "Caption track",
       settings: {
         sensitivity: "medium"
       },
@@ -102,7 +104,7 @@ test.describe("ScriptLens service worker report helpers", () => {
     expect(report.scoringSummary).toContain("does not contain enough spoken text");
   });
 
-  test("keeps direct-content report metadata out of transcript recovery taxonomies", () => {
+  test("keeps direct-content report metadata out of transcript taxonomies", () => {
     const report = Reports.buildAnalysisReport(
       {
         acquisition: {
@@ -144,10 +146,9 @@ test.describe("ScriptLens service worker report helpers", () => {
 
     const snapshot = Contracts.buildAnalysisContractSnapshot(report);
 
-    expect(report.sourceMeta.recoveryTier).toBeNull();
     expect(report.sourceMeta.originKind).toBeNull();
     expect(report.sourceMeta.sourceTrustTier).toBeNull();
-    expect(snapshot.recoveryTier).toBeNull();
+    expect(snapshot).not.toHaveProperty("recoveryTier");
     expect(snapshot.originKind).toBeNull();
     expect(snapshot.sourceTrustTier).toBeNull();
   });

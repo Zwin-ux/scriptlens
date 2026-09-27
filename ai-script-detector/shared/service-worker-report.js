@@ -31,7 +31,7 @@
       acquisition,
       detection,
       analysisMode,
-      contractVersion: Contracts.CONTRACT_VERSION || "2026-03-11",
+      contractVersion: Contracts.CONTRACT_VERSION || "2026-09-27",
       failureCategory: null,
       inputQuality,
       interpretation,
@@ -73,10 +73,6 @@
         acquisitionState: acquisition?.acquisitionState || null,
         transcriptRequiredSatisfied: acquisition?.transcriptRequiredSatisfied ?? true,
         failureReason: acquisition?.failureReason || null,
-        recoveryTier:
-          acquisition?.kind === "transcript"
-            ? acquisition?.recoveryTier || "local"
-            : acquisition?.recoveryTier || null,
         originKind: acquisition?.originKind || null,
         sourceTrustTier: acquisition?.sourceTrustTier || null,
         winnerReason: acquisition?.winnerReason || null,
@@ -159,20 +155,12 @@
   }
 
   function buildInputQuality(acquisition) {
-    const reducedTrustAudio = acquisition?.sourceTrustTier === "audio-derived";
-    const reducedTrustHeadless = acquisition?.sourceTrustTier === "headless-derived";
     if (acquisition.quality === "strong-transcript") {
       return {
         label: "Strong input",
         summary:
           acquisition.kind === "transcript"
-            ? reducedTrustAudio
-              ? "This analysis is grounded in an audio-derived transcript that passed quality checks, but it still carries reduced trust compared with caption or direct transcript sources."
-              : reducedTrustHeadless
-                ? "This analysis is grounded in a transcript recovered through a headless path, so trust is lower than a direct YouTube transcript or manual captions."
-                : acquisition.providerClass === "backend"
-                  ? "This analysis is grounded in a strong recovered transcript because the local path needed help."
-                  : "This analysis is grounded in a strong transcript source with meaningful coverage."
+            ? "This analysis is grounded in a strong transcript source with meaningful coverage."
             : "This analysis uses a relatively clean and substantive direct content source.",
         reasons: buildAcquisitionReasons(acquisition)
       };
@@ -183,13 +171,7 @@
         label: "Useful input",
         summary:
           acquisition.kind === "transcript"
-            ? reducedTrustAudio
-              ? "This analysis uses audio-derived transcript recovery. Treat it as reduced trust even though ScriptLens had enough material to score it."
-              : reducedTrustHeadless
-                ? "This analysis uses transcript material recovered through a headless path, so trust is lower than direct transcript or manual caption recovery."
-                : acquisition.providerClass === "backend"
-                  ? "This analysis uses recovered transcript material because the on-page transcript path was incomplete."
-                  : "This analysis uses transcript material, but coverage or segment quality is still limited."
+            ? "This analysis uses transcript material, but coverage or segment quality is still limited."
             : "This analysis uses useful local content, but source cleanliness and sample size still shape the score.",
         reasons: buildAcquisitionReasons(acquisition)
       };
@@ -214,7 +196,7 @@
     reasons.push(`${capitalize(formatSourceKind(acquisition.kind))}: ${acquisition.sourceLabel}.`);
     reasons.push(`Source confidence: ${capitalize(acquisition.sourceConfidence)}.`);
     if (acquisition.originKind) {
-      reasons.push(`Recovery tier: ${acquisition.recoveryTier || "local"} via ${acquisition.originKind}.`);
+      reasons.push(`Source origin: ${acquisition.originKind}.`);
     }
     if (acquisition.winnerReason) {
       reasons.push(`Winner reason: ${acquisition.winnerReason}.`);
@@ -224,15 +206,6 @@
     }
     if (acquisition.kind === "transcript" && acquisition.segmentCount) {
       reasons.push(`Captured ${acquisition.segmentCount} normalized segments.`);
-    }
-    if (acquisition.providerClass === "backend") {
-      reasons.push("Recovered transcript text was used after the on-page transcript path came back weak or unavailable.");
-    }
-    if (acquisition.sourceTrustTier === "audio-derived") {
-      reasons.push("Audio-derived transcript recovery always carries reduced trust compared with caption or direct transcript sources.");
-    }
-    if (acquisition.sourceTrustTier === "headless-derived") {
-      reasons.push("Headless transcript recovery is treated as weaker than direct transcript and manual caption sources.");
     }
     if (acquisition.isGenerated === true) {
       reasons.push("The winning source uses generated captions.");
@@ -306,10 +279,6 @@
       acquisitionState: acquisition.acquisitionState || null,
       transcriptRequiredSatisfied: acquisition.transcriptRequiredSatisfied ?? true,
       failureReason: acquisition.failureReason || null,
-      recoveryTier:
-        acquisition.kind === "transcript"
-          ? acquisition.recoveryTier || "local"
-          : acquisition.recoveryTier || null,
       originKind: acquisition.originKind || null,
       sourceTrustTier: acquisition.sourceTrustTier || null,
       winnerReason: acquisition.winnerReason || null,
@@ -348,9 +317,6 @@
       hasCode("youtubei_failed")
     ) {
       return "ScriptLens found transcript info for this video, but YouTube did not return enough transcript text to score right now.";
-    }
-    if (hasCode("backend_timeout")) {
-      return "ScriptLens found transcript info for this video, but the optional recovery step did not finish in time.";
     }
     if (hasCode("language_mismatch") || hasCode("language_requested_mismatch")) {
       return "ScriptLens found transcript material, but it did not match the requested language closely enough to score safely.";

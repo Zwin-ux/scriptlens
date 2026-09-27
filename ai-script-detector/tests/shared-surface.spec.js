@@ -4,7 +4,7 @@ const vm = require("vm");
 const { test, expect } = require("@playwright/test");
 
 test.describe("ScriptLens shared surface helpers", () => {
-  test("maps backend transcript reports to consumer inline copy", () => {
+  test("maps partial YouTube transcript reports to consumer inline copy", () => {
     const surface = loadSurfaceModule();
     const viewModel = surface.buildInlineReportViewModel(
       createReport({
@@ -17,9 +17,9 @@ test.describe("ScriptLens shared surface helpers", () => {
         },
         acquisition: {
           kind: "transcript",
-          providerClass: "backend",
-          strategy: "backend-transcript",
-          sourceLabel: "Backend transcript fallback",
+          providerClass: "local",
+          strategy: "youtubei-transcript",
+          sourceLabel: "YouTube transcript",
           sourceConfidence: "medium",
           acquisitionState: "partial-transcript",
           coverageRatio: 0.58,
@@ -33,11 +33,11 @@ test.describe("ScriptLens shared surface helpers", () => {
       })
     );
 
-    expect(viewModel.sourceLabel).toBe("Recovered transcript");
+    expect(viewModel.sourceLabel).toBe("YouTube transcript");
     expect(viewModel.qualityLabel).toBe("Usable transcript");
     expect(viewModel.privacyDisclosure).toBe("");
     expect(viewModel.confidenceLabel).toBe("Medium");
-    expect(viewModel.contractVersion).toBe("2026-03-11");
+    expect(viewModel.contractVersion).toBe("2026-09-27");
   });
 
   test("maps title and description fallback to consumer inline copy", () => {
@@ -80,45 +80,45 @@ test.describe("ScriptLens shared surface helpers", () => {
     expect(viewModel.qualityLabel).toBe("Strong transcript");
   });
 
-  test("surfaces reduced trust for audio-derived transcript recovery", () => {
+  test("describes the local source path without hosted-recovery labels", () => {
     const surface = loadSurfaceModule();
     const viewModel = surface.buildInlineReportViewModel(
       createReport({
         acquisition: {
           kind: "transcript",
-          providerClass: "backend",
-          strategy: "backend-asr",
-          sourceLabel: "Audio-derived transcript",
-          sourceConfidence: "low",
-          sourceTrustTier: "audio-derived",
-          recoveryTier: "hosted_asr",
-          originKind: "audio_asr",
-          winnerReason: "quality-eligible:audio_asr",
-          acquisitionState: "partial-transcript",
-          coverageRatio: 0.63,
-          segmentCount: 28,
-          transcriptSpanSeconds: 420,
+          providerClass: "local",
+          strategy: "caption-track",
+          sourceLabel: "English captions",
+          sourceConfidence: "high",
+          sourceTrustTier: "caption-derived",
+          originKind: "manual_caption_track",
+          winnerReason: "quality-eligible:manual_caption_track",
+          acquisitionState: "transcript-acquired",
+          isGenerated: false,
+          coverageRatio: 0.91,
+          segmentCount: 52,
+          transcriptSpanSeconds: 744,
           languageCode: "en",
           qualityGate: {
             eligible: true,
             rejectedReasons: [],
             wordCount: 540,
             sentenceUnits: 18,
-            coverageRatio: 0.63
+            coverageRatio: 0.91
           }
         }
       })
     );
 
-    expect(viewModel.sourceLabel).toBe("Recovered transcript");
-    expect(viewModel.reducedTrustLabel).toBe("Audio-derived transcript");
-    expect(viewModel.advancedSourceMeta).toContain("Hosted ASR");
-    expect(viewModel.advancedSourceMeta).toContain("Audio-derived");
-    expect(viewModel.winnerReason).toBe("quality-eligible:audio_asr");
-    expect(viewModel.qualityGateNote).toContain("trust is reduced");
+    expect(viewModel.sourceLabel).toBe("YouTube transcript");
+    expect(viewModel.advancedSourceMeta).toBe("Manual captions - Caption-derived - en");
+    expect(viewModel.advancedSourceMeta).not.toMatch(/recovery/i);
+    expect(viewModel.winnerReason).toBe("quality-eligible:manual_caption_track");
+    expect(viewModel.qualityGateNote).toBe("Quality gate passed (540 words, 18 sentence units).");
+    expect(viewModel).not.toHaveProperty("reducedTrustLabel");
   });
 
-  test("keeps recovered short transcripts in an unscored inline state", () => {
+  test("keeps short transcripts in an unscored inline state", () => {
     const surface = loadSurfaceModule();
     const viewModel = surface.buildInlineReportViewModel(
       createReport({
@@ -139,13 +139,12 @@ test.describe("ScriptLens shared surface helpers", () => {
         },
         acquisition: {
           kind: "transcript",
-          providerClass: "backend",
-          strategy: "backend-transcript",
-          sourceLabel: "Recovered transcript",
+          providerClass: "local",
+          strategy: "caption-track",
+          sourceLabel: "English captions",
           sourceConfidence: "high",
           quality: "strong-transcript",
           acquisitionState: "transcript-acquired",
-          recoveryTier: "hosted_transcript",
           originKind: "manual_caption_track",
           winnerReason: "quality-eligible:manual_caption_track",
           coverageRatio: 1,
@@ -179,7 +178,7 @@ function loadSurfaceModule() {
 
 function createReport(overrides = {}) {
   return {
-    contractVersion: "2026-03-11",
+    contractVersion: "2026-09-27",
     acquisition: {
       kind: "transcript",
       providerClass: "local",

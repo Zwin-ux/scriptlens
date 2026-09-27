@@ -10,7 +10,6 @@ Every release-grade report should preserve these fields:
 - `contractVersion`
 - `analysisMode`
 - `originKind`
-- `recoveryTier`
 - `sourceTrustTier`
 - `winnerReason`
 - `qualityGate`
@@ -21,20 +20,16 @@ The shared source of truth lives in:
 
 - `shared/contracts.js`
 
-The current contract version is `2026-03-11`.
+The current contract version is `2026-09-27`. It dropped `recoveryTier`, which only described hosted recovery, when ScriptLens became local-only.
 
 ## Shared error taxonomy
 
 Failure categories are intentionally broader than raw error codes:
 
-- `policy`
 - `quality`
 - `timeout`
 - `transport`
-- `auth-session`
 - `transcript-source`
-- `request`
-- `server`
 - `unknown`
 
 Use the shared helper instead of hard-coding category logic:

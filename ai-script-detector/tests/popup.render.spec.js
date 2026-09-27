@@ -14,8 +14,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
         settings: {
           sensitivity: "medium",
           maxTextLength: 18000,
-          debugMode: false,
-          allowBackendTranscriptFallback: true
+          debugMode: false
         },
         recentReports: [],
         pageContext: {
@@ -111,13 +110,12 @@ test.describe("ScriptLens popup rendering contracts", () => {
         settings: {
           sensitivity: "medium",
           maxTextLength: 18000,
-          debugMode: false,
-          allowBackendTranscriptFallback: true
+          debugMode: false
         },
         recentReports: [],
         pageContext: {
           supported: true,
-          title: "Sample backend transcript page",
+          title: "Sample transcript page",
           hostname: "youtube.com",
           selectionAvailable: false,
           pageAvailable: false,
@@ -143,7 +141,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
       const analyzeResponse = {
         ok: true,
         report: {
-          source: "YouTube video - Sample backend transcript page - Backend transcript fallback",
+          source: "YouTube video - Sample transcript page - YouTube transcript",
           score: 38,
           verdict: "Unlikely AI-written",
           explanation:
@@ -165,10 +163,10 @@ test.describe("ScriptLens popup rendering contracts", () => {
           },
           acquisition: {
             kind: "transcript",
-            provider: "backendResolver",
-            providerClass: "backend",
-            strategy: "backend-transcript",
-            sourceLabel: "Backend transcript fallback",
+            provider: "youtubeResolver",
+            providerClass: "local",
+            strategy: "youtubei-transcript",
+            sourceLabel: "YouTube transcript",
             sourceConfidence: "high",
             quality: "partial-transcript",
             acquisitionState: "partial-transcript",
@@ -179,12 +177,12 @@ test.describe("ScriptLens popup rendering contracts", () => {
             transcriptSpanSeconds: 98,
             coverageRatio: 0.41,
             segmentCount: 12,
-            warnings: ["backend_fallback_used"],
+            warnings: [],
             errors: [],
             resolverAttempts: [],
-            resolverPath: ["backendResolver:backend-transcript"],
-            winnerSelectedBy: ["backend-success"],
-            text: "A backend transcript sample."
+            resolverPath: ["youtubeResolver:youtubei-transcript"],
+            winnerSelectedBy: ["quality-eligible:youtube_transcript"],
+            text: "A YouTube transcript sample."
           },
           inputQuality: {
             label: "Partial input",
@@ -242,7 +240,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
     await expect(popupPage.locator("#acquisitionQualityBadge")).toContainText(
       "Partial transcript"
     );
-    await expect(popupPage.locator("#providerBadge")).toContainText("Recovered transcript");
+    await expect(popupPage.locator("#providerBadge")).toContainText("Local transcript");
     await expect(popupPage.locator("#privacyDisclosure")).toBeHidden();
     await expect(popupPage.locator("#acquisitionStateCopy")).toContainText(
       "real transcript source"
@@ -262,8 +260,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
         settings: {
           sensitivity: "medium",
           maxTextLength: 18000,
-          debugMode: false,
-          allowBackendTranscriptFallback: true
+          debugMode: false
         },
         recentReports: [],
         pageContext: {
@@ -402,7 +399,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
     );
   });
 
-  test("renders recovered-but-unscored transcripts without falling back to 0", async ({
+  test("renders unscored transcripts without falling back to 0", async ({
     context,
     extensionId
   }) => {
@@ -415,8 +412,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
         settings: {
           sensitivity: "medium",
           maxTextLength: 18000,
-          debugMode: false,
-          allowBackendTranscriptFallback: true
+          debugMode: false
         },
         recentReports: [],
         pageContext: {
@@ -447,7 +443,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
       const analyzeResponse = {
         ok: true,
         report: {
-          source: "YouTube video - Short transcript page - Recovered transcript",
+          source: "YouTube video - Short transcript page - English captions",
           score: null,
           verdict: "Not enough spoken text",
           explanation:
@@ -475,10 +471,10 @@ test.describe("ScriptLens popup rendering contracts", () => {
           },
           acquisition: {
             kind: "transcript",
-            provider: "backendResolver",
-            providerClass: "backend",
-            strategy: "backend-transcript",
-            sourceLabel: "Recovered transcript",
+            provider: "youtubeResolver",
+            providerClass: "local",
+            strategy: "caption-track",
+            sourceLabel: "English captions",
             sourceConfidence: "high",
             quality: "strong-transcript",
             acquisitionState: "transcript-acquired",
@@ -491,7 +487,7 @@ test.describe("ScriptLens popup rendering contracts", () => {
             warnings: ["insufficient_scoring_input"],
             errors: [],
             resolverAttempts: [],
-            resolverPath: ["backendResolver:backend-transcript"],
+            resolverPath: ["youtubeResolver:caption-track"],
             winnerSelectedBy: ["quality-eligible:manual_caption_track"],
             winnerReason: "quality-eligible:manual_caption_track",
             text: "Short transcript text."
